@@ -417,14 +417,13 @@ elif [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     fi
     echo " INFO: 1. Deleting helm [$CNAME]:[$ASKFLAG]"
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG --verbose -fv \"$FCONFIG\" $FVALUESCMD delete"
-    echo -e "# Running command [$CMD]\n---"
+    echo -e "# Running command [$CMD]"
     eval "$CMD"
-    echo "---"
     echo " INFO: 2. Installing helm [$CNAME]:"
     sleep 1
 
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
-    echo -e "# Running command [$CMD]\n---"
+    echo -e "# Running command [$CMD]"
     bash -c "$CMD"
     if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
 fi
@@ -445,11 +444,11 @@ fi
 
 if test -d "$CCHART" && [ "${#BUILDCMD}" -gt 0 ]; then # Only CCHART=directory apply the --build
     CMD="helm $NAMESPACEARG dependency update '$CCHART' $VERSIONARG"
-    echo -e "# Running command [$CMD]\n---"
+    echo -e "# Running command [$CMD]"
     bash -c "$CMD"
     echo "---"
     CMD="helm $NAMESPACEARG dependency build '$CCHART' $VERSIONARG"
-    echo -e "# Running command [$CMD]\n---"
+    echo -e "# Running command [$CMD]"
     bash -c "$CMD"
     echo "---"
 fi
@@ -460,9 +459,9 @@ COMMANDS2ASK4CONFIRMATION=" $COMMANDS2INSTALL idebug delete debug "
 if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
     if [[ ${COMMANDSINVOLVEDINHELPCOMMAERROR[@]} =~ " $COMMAND " ]] && [[ "$FVALUES" == *","* ]]; then
         MSG="WARNING: commas are treated as special chars; so error arise when used on chart paths. Do you want to continue using chart path [$CCHART]"
-        echo $MSG | egrep --color=auto  ","
+        echo $MSG | egrep --color=auto  "," > /dev/tty
             read -p "sure [Y/n]? " -n 1 -r 
-            echo    # (optional) move to a new line
+            echo  > /dev/tty  # (optional) move to a new line
         if [[ ! $REPLY =~ ^[1Yy]$ ]]; then
             echo "NOTE: Try renaming chart path to remove the commas [$CCHART]"
             if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
@@ -498,12 +497,12 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run this command on chart [$CCHART] $NAMESPACEDESC using value file [$FVALUES]?"
         if [ "$USECCLUE" = true ]; then
-            echo $MSG | egrep --color=auto  "$CCLUEORIG"
+            echo $MSG | egrep --color=auto  "$CCLUEORIG" > /dev/tty
         else
-            echo $MSG
+            echo $MSG > /dev/tty
         fi
         read -p "sure [Y/n]? " -n 1 -r 
-        echo    # (optional) move to a new line
+        echo  > /dev/tty  # (optional) move to a new line
     else
         REPLY="y"
     fi

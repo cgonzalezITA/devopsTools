@@ -37,7 +37,6 @@ function help() {
     if test "$#" -ge 1; then
         HELP="${1}\n"     
     fi
-    # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<command>:apply*|delete|restart|debug]       \n 
             \t-h: Show help info                                                                                   \n
             \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts) \n

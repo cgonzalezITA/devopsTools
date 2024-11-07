@@ -3,7 +3,6 @@ This folder contains scripts to ease certain operations on the git environment.
 - [git Tools](#git-tools)
   - [Creating a git keypair certificate](#creating-a-git-keypair-certificate)
   - [Commit with comments](#commit-with-comments)
-  - [Pushing all the gits (main git and submodules) with just one command:](#pushing-all-the-gits-main-git-and-submodules-with-just-one-command)
   - [Freeze a file](#freeze-a-file)
     - [Changing branch with skipped files involved](#changing-branch-with-skipped-files-involved)
 
@@ -56,26 +55,6 @@ $ vi ~/.bashrc
 To simplify the commit, after all the changes have been added, just execute the command:
 > USAGE: gCommit.sh [-h] [-s <submodulePath>] <comment1 (with quotes ")> [<comment2 (with quotes ")>]
 > 
-
-## Pushing all the gits (main git and submodules) with just one command:  
-To enable this multi-git command, git has to be connected to the git origin, not the https origin. From the tools folder execute:  
-Check the remote url:  
-> git remote -v  
-
-If it is linked to the https repository, execute the following command to link to the git equivalent one (that can be found at the repository page of the git site):  
-> git remote set-url origin <gitRepository origin: eg.git@github.com:cgonzalezITA/devopsTools.git>  # Customize it to your git
-
-2- [Create a keypair certificate to connect to the GIT server](../README.md#creating-a-keypair-certificate)
-Follow the steps described at [Create a keypair certificate to connect to your GIT server](../README.md#creating-a-keypair-certificate) or [view methodology guidelines](https://feditmpsa.sharepoint.com/:p:/s/TD_BD_Sistemas_Cognitivos2/EUsBoj-0XsBFjQ5AVnV5UJABpygh1x9vMnwkAfGIddkt_Q?e=M5zo7V)  
-
-3- Add the following line to the ~/.gitconfig  
-```
-[alias]
-    push-all = "! find . -depth -name .git -exec dirname {} \\; 2> /dev/null | sort -n -r | xargs -I{} bash -c \"cd {}; git status | grep ahead > /dev/null && { echo -e '\n********** Pushing: {} **********'; git push; }\""
-```
-Then just execute 
-> git push-all or the script ./gTools/gpushAll.sh
-
 
 ## Freeze a file
 The gTools/gFreeze.sh command implements this behaviour.  

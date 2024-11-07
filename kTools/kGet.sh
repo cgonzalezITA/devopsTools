@@ -34,7 +34,7 @@ USECCLUE=true
 # \t-fvn: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
 USENSCCLUE=true
 ARTIFACTS="pod svc deployment statefulset ingress configmap job networkpolicy pvc"
-ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume "
+ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume "
 OUTPUTFORMATS=" yaml json wide "
 # \t-o <outputFormat>: One of [$OUTPUTFORMATS] \n
 OUTPUTFORMAT=""
@@ -128,7 +128,13 @@ if test "${#CCLUE}" -eq 0; then
     CCLUEEMPTY=true
 else
     CCLUEEMPTY=false
+    if test "${#K8SARTIFACT}" -eq 0 && [[ ${ARTIFACTSFULLNAMES[@]} =~ " $CCLUE " ]];  then
+        echo "# NOTE: CCLUE [$CCLUE] matches a k8s artifact name. To use [$CCLUE] as a clue for the component's name use syntax -a <k8sArtifact 2B get> $CCLUE"
+        K8SARTIFACT=$CCLUE
+        CCLUE=""
+    fi
 fi
+
 if test "${#K8SARTIFACT}" -eq 0; then
     K8SARTIFACT="pod"
 elif [[ ! ${ARTIFACTSFULLNAMES[@]} =~ " $K8SARTIFACT " ]] &&[[ "$CCLUEEMPTY" == false ]] ;  then
@@ -197,6 +203,7 @@ elif [ "${#CCLUE}" -eq 0 ]; then
     GREPCMD=""
     GREPK8SCMD=""
     PATTERNDESC=""
+    PATTERN4COMMAND=$PATTERNDESC
 elif [[ "$OUTPUTFORMAT" =~ ^(-o yaml|-o json)$ ]]; then
     getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT "$USECCLUE" "$CCLUE" "$NAMESPACEARG" "get a k8s [$K8SARTIFACT]" false )
     RC=$?; 
@@ -208,6 +215,7 @@ elif [[ "$OUTPUTFORMAT" =~ ^(-o yaml|-o json)$ ]]; then
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     else    
         PATTERNDESC=$getArtifact_result;
+        PATTERN4COMMAND=$PATTERNDESC
         GREPCMD="| grep $CCLUE | egrep --color=auto  '$CCLUE|$'"
         GREPK8SCMD=""
     fi    
@@ -215,11 +223,12 @@ else
     GREPCMD="| grep $CCLUE | egrep --color=auto  '$CCLUE|$'"
     GREPK8SCMD=$GREPCMD
     PATTERNDESC="[*$CCLUE*]"
+    PATTERN4COMMAND=""
 fi
 
 if ! test "${#OUTPUTFORMAT}" -eq 0; then
     # For get commands with -o an k8s artifact has to be provided
-    CMD="kubectl $COMMAND $K8SARTIFACT $PATTERNDESC $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
+    CMD="kubectl $COMMAND $K8SARTIFACT $PATTERN4COMMAND $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
 else
     CMD="kubectl $COMMAND $K8SARTIFACT  $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
 fi
@@ -235,7 +244,6 @@ if [ "$VERBOSE" = true ]; then
     if ! test "${#OUTPUTFORMAT}" -eq 0; then
         echo "# OUTPUT=[$OUTPUTFORMAT]"
     fi
-    echo "#   INFO: Getting [$K8SARTIFACT] $PATTERNDESC $NAMESPACEDESC"
     echo "#   Running command [$CMD]"
     echo "---"
 fi
