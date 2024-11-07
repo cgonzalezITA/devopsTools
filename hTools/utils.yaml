@@ -1,0 +1,193 @@
+{{- if ((.Values.utils).enabled) }}
+# example values for the utils and utils-echo components
+# utils:
+#   enabled: true
+#   utils-echo:
+#     enabled: true
+#     ingress: 
+#       enabled: true
+#       tls:
+#         # []
+#         - hosts: [ fiwaredsc-orion.ita.es]
+#           secretName: secret.ita.es-tls
+#       hosts: 
+#         # []
+#         ## provide a hosts and the paths that should be available          
+#         - host:  fiwaredsc-orion.ita.es
+#           path: /utils-echo
+# https://hub.docker.com/r/arunvelsriram/utils
+apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ""
+items:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: utils-nettools
+      name:  utils-nettools-files
+    data:
+      infiniteLoop.sh: |-
+        #!/bin/bash
+        while true; do echo "Next wakeup in 3600s. Zzzz"; sleep 3600 ; done
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: utils-nettools
+      name:  utils-nettools
+    spec:
+      ports:
+        - port: 8080
+      selector:
+        app: utils-nettools
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: utils-nettools
+      name:  utils-nettools
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: utils-nettools
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: utils-nettools
+        spec:
+          containers:
+            - name: utils-nettools
+              image: arunvelsriram/utils
+              command:
+                - "/tmp/infiniteLoop.sh"
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: utils-nettools-files
+                  mountPath: /tmp
+                  # subPath: infiniteLoop.sh
+          restartPolicy: Always
+          volumes:
+            - name: utils-nettools-files
+              configMap:
+                name: utils-nettools-files
+                defaultMode: 0777
+{{- end }}
+---
+{{- if ((.Values.utils).enabled) }}
+{{- if (((.Values.utils).echo).enabled) }}
+{{- $ns := .Release.Namespace }}
+# {{- $svcName := printf "%s-utils-echo" .Release.Name }}
+# Echo artifacts that expose an ingress to show server info
+apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ""
+items:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: utils-echo
+      name:  utils-echo
+    spec:
+      ports:
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app: utils-echo
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: utils-echo
+      name:  utils-echo
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: utils-echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: utils-echo
+        spec:
+          containers:
+            - image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
+              name: utils-echo
+              ports:
+                - containerPort: 8080
+              env:
+                - name: NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+              resources: {}
+{{- if ((((.Values.utils).echo).ingress).enabled) }}
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      generation: 1
+      name: utils-echo
+    spec:
+      ingressClassName: nginx
+      {{- if .Values.utils.echo.ingress.tls }}
+      tls:
+        {{- range .Values.utils.echo.ingress.tls }}
+        - hosts:
+          {{- range .hosts }}
+          - {{ . }}
+          {{- end }}
+          {{- $secretName := .secretName }}
+          {{- if eq $secretName nil }}
+          {{- fail "Error: secret utils.utils-echo.ingress.tls[].secretName not set in value file" -}}
+          {{- else -}}
+          {{- $secret := (lookup "v1" "Secret" $ns $secretName) -}}
+          {{- if and $secret (not (empty ($secret.metadata).name)) }}
+          secretName: {{ $secretName }}
+          {{- else -}}
+          {{- fail (printf "Error: Secret '%s' does not exist in namespace '%s'" $secretName $ns) -}}
+          {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      rules:
+      {{- range .Values.utils.echo.ingress.hosts }}
+      - host: {{ .host }}
+        http:
+          paths:
+{{- if not (hasPrefix "/" .path) }}
+{{- fail "Error: .path must start with a /" }}
+{{- end }}
+            - backend:
+                service:
+                  name: utils-echo
+                  port:
+                    number: 8080
+              path: {{ .path | default "/utils-echo" }}
+              pathType: Prefix              
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

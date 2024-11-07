@@ -1,0 +1,154 @@
+# https://hub.docker.com/r/arunvelsriram/utils
+# kExec utils -- nslookup <serviceName>
+apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ""
+items:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: netutils
+      name: netutils-files
+    data:
+      infiniteLoop.sh: |-
+        #!/bin/bash
+        while true; do echo "Next wakeup in 3600s. Zzzz"; sleep 3600 ; done
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: netutils
+      name: netutils
+    spec:
+      ports:
+        - port: 8080
+      selector:
+        app: netutils
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: netutils
+      name: netutils
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: netutils
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: netutils
+        spec:
+          containers:
+            - name: utils
+              image: arunvelsriram/utils
+              command:
+                - "/tmp/infiniteLoop.sh"
+                # - sleep
+                # - "36000000"
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: netutils-files
+                  mountPath: /tmp
+                  # subPath: infiniteLoop.sh
+          restartPolicy: Always
+          volumes:
+            - name: netutils-files
+              configMap:
+                name: netutils-files
+                defaultMode: 0777
+---
+# Echo artifacts that expose an ingress to show server info
+apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ""
+items:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: echo
+      name: echo-svc
+    spec:
+      ports:
+        - port: 8080
+          name: high
+          protocol: TCP
+          targetPort: 8080
+        - port: 80
+          name: low
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app: echo
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: echo
+      name: echo
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: echo
+      strategy: {}
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: echo
+        spec:
+          containers:
+            - image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
+              name: echo
+              ports:
+                - containerPort: 8080
+              env:
+                - name: NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+              resources: {}
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      generation: 1
+      name: echo
+    spec:
+      ingressClassName: nginx
+      rules:
+        - host: verifiabledr-tir.ita.es
+          http:
+            paths:
+              - backend:
+                  service:
+                    name: echo-svc
+                    port:
+                      number: 80
+                path: /echo
+                pathType: Prefix
+      tls:
+        - hosts:
+            - verifiabledr-tir.ita.es
+          secretName: secret.ita.es-tls
