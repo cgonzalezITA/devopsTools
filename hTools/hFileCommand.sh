@@ -54,6 +54,14 @@ CONFIGNAME_PATTERN=config.*
 VERBOSE=true
 # \t[<command>] Command to be executed against the artifact file: apply*|delete|restart"
 COMMAND=""
+COMMANDSINSTALL=" install up start i "
+COMMANDSDELETE=" delete down stop del d "
+COMMANDSRESTART=" restart r "
+COMMANDSUPGRADE=" upgrade u "
+COMMANDSDEBUG=" debug dbg "
+COMMANDSTEST=" test t "
+COMMANDSIDEBUG=" idebug "
+COMMANDNAMES=" $COMMANDSINSTALL $COMMANDSDELETE $COMMANDSRESTART $COMMANDSUPGRADE $COMMANDSDEBUG $COMMANDSTEST $COMMANDSIDEBUG "
 # \t-f <folder with helm config>: Folder where the config file must be located (def value: ./HValues    \n
 FOLDER_HELMBASE=./Helms
 # \t-fv: Force secretname match the given clue (using this, the clue is not a clue, but the name)       \n
@@ -80,7 +88,7 @@ function help() {
         HELP="${1}\n"     
     fi
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<command>:install*|delete|restart|debug|idebug|test]\n 
+    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<command>:$COMMANDNAMES]\n 
             \t-h: Show help info                                                                                  \n
             \t-n <NamespaceClue>: Specifies a clue of the namespace to be used                                    \n
             \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
@@ -93,7 +101,8 @@ function help() {
             \t-y: No confirmation questions are asked                                                             \n
             \t-b: Runs a dependency build command that is required for umbrella charts for being updated          \n
             \t<component clue>: Clue to identify the artifact file name. all to run command on all yaml files     \n
-            \t[<command>] Command to be executed against the artifact file: apply*|delete|restart|debug|test"
+            \t[<command>] Command to be executed against the artifact file: $COMMANDNAMES"
+                                                                            
     echo $HELP
 }
 
@@ -160,7 +169,14 @@ if test "${#CCLUE}" -eq 0; then
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 elif test "${#COMMAND}" -eq 0; then
     COMMAND="install"
+elif [[ ${COMMANDNAMES[@]} =~ " $CCLUE " ]] && ! [[ ${COMMANDNAMES[@]} =~ " $COMMAND " ]];  then
+    TMP=$CCLUE
+    CCLUE=$COMMAND
+    CCLUEORIG=$COMMAND
+    COMMAND=$TMP
 fi
+
+
 
 if ! test -d $FOLDER_HELMBASE;then 
     echo -e $(help "ERROR: Folder [$FOLDER_HELMBASE] must exist. Use -f option to use an alternate folder");
@@ -350,10 +366,23 @@ else
     VERSIONARG="--version $VERSION"
 fi
 
-if [[ "$COMMAND" =~ ^(up|start|install|u)$ ]]; then
+if [[   $COMMANDSINSTALL =~ " $COMMAND " ]]; then
     COMMAND="install";
-elif [[ "$COMMAND" =~ ^(down|stop|del|d)$ ]]; then
+elif [[ $COMMANDSDELETE =~ " $COMMAND " ]]; then
     COMMAND="delete";
+elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
+    COMMAND="restart";
+elif [[ $COMMANDSUPGRADE =~ " $COMMAND " ]]; then
+    COMMAND="upgrade";
+elif [[ $COMMANDSDEBUG =~ " $COMMAND " ]]; then
+    COMMAND="debug";
+elif [[ $COMMANDSTEST =~ " $COMMAND " ]]; then
+    COMMAND="test";
+elif [[ $COMMANDSIDEBUG =~ " $COMMAND " ]]; then
+    COMMAND="idebug";
+else
+    echo -e $(help "# ERROR: Unknown command [$COMMAND]. It must be one of [$COMMANDNAMES]");
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 fi
 
 if [ "$VERBOSE" = true ]; then
@@ -366,8 +395,8 @@ if [ "$VERBOSE" = true ]; then
         echo -e "# -CONFIG_FILE=[$CCLUE] -> [$FCONFIG]"
     fi
     echo -e "# -COMMAND=[$COMMAND]                 " | egrep --color=auto "$COMMAND"
-    echo -e "#  >HELM_NAME=$CNAME                  " 
     echo -e "#  >CONFIGNAME_PATTERN=$CONFIGNAME_PATTERN" 
+    echo -e "#  >HELM_NAME=$CNAME                  " 
     echo -e "#  >HELM_CHART=$CCHART                " 
     echo -e "#  >VERSION=$VERSIONARG               "
     MSG="#  >VALUES_FILE=" 
@@ -405,10 +434,9 @@ fi
 
 
 
-if test "$COMMAND" == "test"; then
+if [[ $COMMANDSTEST =~ " $COMMAND " ]]; then
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
-elif [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
-    COMMAND="restart";
+elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     if [ "$ASK" == true ]; then ASKFLAG=""; else ASKFLAG="-y"; fi
     if test "${#FVALUESCLUE}" -gt 0; then
         FVALUESCMD=" -fvf -vf \"$FVALUES\""
@@ -427,20 +455,6 @@ elif [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     bash -c "$CMD"
     if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
 fi
-
-# EXTRACOMPONENTS_FILE=/tmp/extraComponents.yaml
-# if test -f $EXTRACOMPONENTS_FILE; then
-#     rm $EXTRACOMPONENTS_FILE > /dev/null 2>&1
-# fi
-# if [ ! -z "${EXTRACOMPONENTS}" ]; then
-#     echo -e "This config file has extra components:\n---\n$EXTRACOMPONENTS\n---"
-#     read -ep "Do you want to you $COMMAND them ([Y/n])? (File $EXTRACOMPONENTS_FILE will be created)" -n 1 -r
-#     echo    # (optional) move to a new line
-#     if [[ $REPLY =~ ^[Yy]$ ]]; then 
-#         # echo -e "apiVersion: v1\nkind: List\nmetadata:\nresourceVersion: ""\nitems:\n\t"
-#         echo -e "$EXTRACOMPONENTS" > $EXTRACOMPONENTS_FILE
-#     fi
-# fi
 
 if test -d "$CCHART" && [ "${#BUILDCMD}" -gt 0 ]; then # Only CCHART=directory apply the --build
     CMD="helm $NAMESPACEARG dependency update '$CCHART' $VERSIONARG"
@@ -481,7 +495,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
         #     echo "NOTE: If PV are not deleted, do not worry, or check https://stackoverflow.com/questions/55672498/kubernetes-cluster-stuck-on-removing-pv-pvc"
         #     kubectl $NAMESPACEARG delete -f $EXTRACOMPONENTS_FILE
         # fi
-    elif [ "$COMMAND" == "debug" ]; then
+    elif [[ $COMMANDSDEBUG =~ " $COMMAND " ]]; then
         COMMAND="template --debug"
         CMD="helm $NAMESPACEARG $COMMAND -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG 2>&1"
         if [ "$VERBOSE" = true ]; then
@@ -512,6 +526,4 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
     else
         if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
     fi
-else
-    echo "# ERROR: Unknown command [$COMMAND]"
 fi

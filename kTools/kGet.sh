@@ -34,7 +34,7 @@ USECCLUE=true
 # \t-fvn: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
 USENSCCLUE=true
 ARTIFACTS="pod svc deployment statefulset ingress configmap job networkpolicy pvc"
-ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume "
+ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume ns namespace "
 OUTPUTFORMATS=" yaml json wide "
 # \t-o <outputFormat>: One of [$OUTPUTFORMATS] \n
 OUTPUTFORMAT=""
@@ -129,7 +129,7 @@ if test "${#CCLUE}" -eq 0; then
 else
     CCLUEEMPTY=false
     if test "${#K8SARTIFACT}" -eq 0 && [[ ${ARTIFACTSFULLNAMES[@]} =~ " $CCLUE " ]];  then
-        echo "# NOTE: CCLUE [$CCLUE] matches a k8s artifact name. To use [$CCLUE] as a clue for the component's name use syntax -a <k8sArtifact 2B get> $CCLUE"
+        echo "# NOTE: CCLUE [$CCLUE] matches a k8s artifact name. To use [$CCLUE] as a clue for the component's name use syntax -a <k8sArtifact> $CCLUE"
         K8SARTIFACT=$CCLUE
         CCLUE=""
     fi
