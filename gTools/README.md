@@ -5,6 +5,8 @@ This folder contains scripts to ease certain operations on the git environment.
   - [Commit with comments](#commit-with-comments)
   - [Freeze a file](#freeze-a-file)
     - [Changing branch with skipped files involved](#changing-branch-with-skipped-files-involved)
+  - [Github: Git Squash](#github-git-squash)
+  - [Github: Merge using git rebase](#github-merge-using-git-rebase)
 
 ## Creating a git keypair certificate
 If opting for the **git@** ref. you will be required to have a git keypair certificate setup (the symptom is that you will be asked for the git password that does not match the user password). You will have to add hence a keypair certificate to your machine to connect to the git.  
@@ -90,4 +92,75 @@ git checkout $NEWBRANCH
 # Reapply Stashed Changes
 # gFreeze
 gFreeze -unstash
+```
+
+## Github: Git Squash
+Taken from [The Modern Coder-Git squash](https://www.youtube.com/watch?v=V5KrD7CmO4o)
+Git squash is used to while keeping the changes, get rid of not relevant comments in the commits replacing several commits by just one commit sumarizing the changes of all the squashed commits.  
+The scenario is that at this point you are at your altBranch with a number of commits and you want to replace the X latest ones by just one
+- Review the latest changes
+```
+$ git logs --oneline
+6fb28f6 (HEAD -> altBranch, tag: step04, origin/altBranch) Use Admin API to manage routes
+f405746 (tag: step03) Step03: Deploy a new route via the altBranch.yaml file
+a0175d9 (tag: step02) Step02: Deploy a functional version of altBranch
+7488c0f (tag: step01) Step01 of altBranch deployment
+5ab8044 helms/altBranch empty certificates added
+3a42eb4 (origin/main, origin/HEAD, main) Initial commit
+```
+- We will squash the latest 5 latest commits   
+```
+$ git rebase -i HEAD~5
+# At this point a nano editor opens showing the pick (use commit) besides comments describing the possible operations (here we are to use just squash): 
+pick 5ab8044 helms/altBranch empty certificates added
+pick 7488c0f Step01 of altBranch deployment
+pick a0175d9 Step02: Deploy a functional version of altBranch
+pick f405746 Step03: Deploy a new route via the altBranch.yaml file
+pick 6fb28f6 Use Admin API to manage routes
+
+# Rebase 3a42eb4..6fb28f6 onto f405746 (5 commands)
+#
+# Commands:
+# p, pick <commit> = use commit
+...
+```
+- Replace the pick command by the squash command at the editor but for the first line that should contain the summary of the commits
+```
+pick 5ab8044 helms/altBranch empty certificates added
+squash 7488c0f Step01 of altBranch deployment
+squash a0175d9 Step02: Deploy a functional version of altBranch
+squash f405746 Step03: Deploy a new route via the altBranch.yaml file
+squash 6fb28f6 Use Admin API to manage routes
+```
+- Save the file and exit. A second editor will appear with the suggested changes. Remove or comment all the commit messages except the one you want to leave (In our case, the 5th one)
+In the example, the only line not commented out has been _"altBranch deployed to using Admin API to manage routes"_
+
+- After saving and exiting, the changes are performed. To review the commits now, re-run the command:
+```
+$ git log --oneline
+9bca0cd (HEAD -> altBranch) altBranch deployed to using Admin API to manage routes
+3a42eb4 (origin/main, origin/HEAD, main) Initial commit
+```
+- Suggestion: a good option is to [rebase your altBranch into another branch](#github-merge-using-git-rebase)
+
+## Github: Merge using git rebase
+Taken from [The Modern Coder-Git rebase](https://www.youtube.com/watch?v=f1wnYdLEpgI)
+He defends the point that rebase is for complex git cleaner that merging.  
+It is dangerous when multiple people is commiting to the master branch.   
+NOTE: Here _master_ is just to ilustrate the example. I used _altBranch_ as the branch to rebase into _master_
+```
+# The scenario is that at this point you are at your altBranch with a number of commits.
+# Downloads latest change from master
+git checkout master
+git pull
+git checkout altBranch
+git rebase master
+# Solve any potential conflict and commit it.
+git checkout master
+git rebase altBranch
+# No conflicts should appear
+git push
+# If an error appears, you can try
+git push --force
+git push --force-with-lease
 ```

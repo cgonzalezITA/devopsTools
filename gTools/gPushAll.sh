@@ -14,10 +14,12 @@
 SCRIPTNAME=$BASH_SOURCE
 if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"; fi
 BASEDIR=$(dirname "$SCRIPTNAME")
-# \t-y: No confirmation questions are asked                                                             \n
+# \t-y: No confirmation questions are asked\n
 ASK=true
 # \t-f: Force push even no changes have been detected (eg. when tags are created)\n"
 FORCE=false
+# \t-ft: Force push tags (eg. when tag is updated but it already exists in the remote) \n"
+FORCETAGFLAG=""
 #############################
 ## Functions               ##
 #############################
@@ -50,6 +52,8 @@ while true; do
             ASK=false; shift ;;
         -f | --force ) 
             FORCE=true; shift ;;
+        -ft | --forceTask ) 
+            FORCETAGFLAG=" --force "; shift ;;
         * )  
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
@@ -103,7 +107,7 @@ for dir in . */; do
         NTAGSREMOTE=$(git ls-remote --tags | grep  "\^{}" | wc -l)
         if [ "$NTAGSLOCAL" -gt "$NTAGSREMOTE" ]; then
             echo "As Number of local tags ($NTAGSLOCAL) > number remote tags($NTAGSREMOTE), tags are asked to be pushed"
-            CMD="$CMD --tags"
+            CMD="$CMD --tags $FORCETAGFLAG"
         fi
         if [ "$ASK" = true ]; then
             echo -e ">Running command [$CMD]" 

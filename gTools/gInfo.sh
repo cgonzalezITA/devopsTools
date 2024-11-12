@@ -200,9 +200,9 @@ if [ "$VERBOSE" = true ]; then
 fi
 LABEL="Remote Tags"
 CMD="git ls-remote --tags"
-NTAGSREMOTE=$($CMD | grep  "\^{}" | wc -l)
+NTAGSREMOTE=$($CMD | grep  -v "\^{}" | wc -l)
 echo "- $LABEL ($NTAGSREMOTE):" | egrep --color=auto  "$LABEL" 
-$CMD
+$CMD |  grep  -v "\^{}"
 if [ "$VERBOSE" = true ]; then
     echo -e "> Run command [$CMD]" 
 fi

@@ -23,6 +23,7 @@ C2=""
 # \t-y: No confirmation questions are asked                                                             \n
 ASK=true
 # \t[-t|--tag] TAG: Adds a tag to commit \n
+# \t[-f| -ft |--ftag] TAG: Forces an existing tag to be updated to the committed head \n
 TAG=""
 # \t[-tc|--tagComment] TAGCOMMENT: Adds a comment to the tag\n"
 TAGC=""
@@ -39,6 +40,7 @@ function help() {
             \t-h: Show help info \n
             \t-y: No confirmation questions are asked \n
             \t[-t|--tag] TAG: Adds a tag to commit \n
+            \t[-f| -ft |--forcetag] TAG: Forces an existing tag to be updated to the committed head \n
             \t[-tc|--tagComment] TAGCOMMENT: Adds a comment to the tag\n"
     echo $HELP
     HELP="HELP: USAGE: $SCRIPTNAME "
@@ -61,7 +63,9 @@ while true; do
         -a | --ask ) 
             VERBOSE=false; shift ;;
         -t | --tag ) 
-            TAG=$2; shift; shift ;;
+            TAG="-a \"$2\""; shift; shift ;;
+        -f | -ft | --forcetag ) 
+            TAG="-f \"$2\""; shift; shift ;;
         -tc | --tagComment ) 
             TAGC=$2; shift; shift ;;
         -s | --submodule | -f | -m ) 
@@ -91,6 +95,9 @@ if test "${#C1}" -eq 0; then
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
+if test "${#TAG}" -gt 0; then
+    test "${#TAGC}" -eq 0 && TAGC=$C1;
+fi
 if [ "$VERBOSE" = true ]; then
     echo " PATH= $( pwd )"
     echo " SUBMODULE= [$SUBMODULE]"
@@ -101,7 +108,7 @@ if [ "$VERBOSE" = true ]; then
 fi
 CMD="git commit $C"
 if test "${#TAG}" -gt 0; then
-    CMD="$CMD; git tag -a \"$TAG\" -m \"$TAGC\""
+    CMD="$CMD; git tag $TAG -m \"$TAGC\""
 fi
 if [ "$VERBOSE" = true ]; then
     echo "  >Running command [$CMD]"
