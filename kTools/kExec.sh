@@ -43,7 +43,7 @@ function help() {
         HELP="${1}\n"     
     fi
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <k8s componet name clue> [<command:def: sh>]                   \n 
+    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <k8s componet name clue> [-- <command:def: sh>]                   \n 
             \t-h: Show help info                                                                                   \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)             \n
             \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)   \n
@@ -90,18 +90,22 @@ while true; do
             NSCLUE="default"
             shift ;;
         * ) 
-            if [[ $1 == -* ]]; then
+            if [[ $1 == -* && $1 != --* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#CCLUE}" -eq 0; then
                 CCLUE=$1
                 shift;
-            elif test "${#COMMAND}" -eq 0; then
-                COMMAND=$1;
+            elif [[ $1 == --* ]]; then                 
+                COMMAND=${1:2};
                 shift;
+                [[ "$#" -eq 0 ]] && break;
+                COMMAND="$COMMAND $@"
+                break;
             fi ;;
     esac
 done
+
 
 if test "${#CCLUE}" -eq 0; then
     echo -e $(help "ERROR: <k8s componet name clue> is mandatory");
