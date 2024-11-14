@@ -16,12 +16,12 @@ This folder contains yaml files with the definition of components that could be 
   - **echo**: results in a pod that expose several server informations.    
 
 To deploy them:
-```
+```shell
 kubectl apply -n <targetNS> -f "kTools/<k8s_file. eg. k8s_components-utils>.yaml"
 ```
 ## k8s tips
 ### Renew the ingress certificate in minikube ingress
-  ```
+  ```shell
   1- minikube addons configure ingress 
   # Enter the name of the tls certificate
   2- minikube addons disable ingress
@@ -31,7 +31,7 @@ kubectl apply -n <targetNS> -f "kTools/<k8s_file. eg. k8s_components-utils>.yaml
 
 ### Log requests made to ingress
 The logs of your Ingress controller can be seen when it handles requests and returns errors such as "502 Bad Gateway".  
-```
+```shell
 # Identify the Ingress Controller Pods
 $ kubectl get pods -n ingress-nginx
 # Identify the name of your controller pod

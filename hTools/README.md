@@ -25,7 +25,7 @@ This Helm yaml file defines the components to install a couple of utilities.
 - utils-nettools: results in a pod with tools like nslookup, curl, wget, ping, ... installed.
 - utils-echo: results in a pod that expose several server informations.  
 The value file structure to deploy these tools can be something similar to:
-```
+```yaml
 utils:
   enabled: true
   echo:
@@ -58,7 +58,7 @@ Once deployed, the URL https://MyDNS.com/echo will show a set of server informat
  |- values.yaml
 ```
 The values file should contain something similar to
-```
+```yaml
 tls:
   enabled: true
   name: <SECRETNAME>. # eg.mydns-tls
@@ -69,38 +69,41 @@ REMEMBER: Create TLS Certificates (Transport Layer Security).
 - Using Organization official certificates (issued by Certification authority companies such as Let’s encrypt, ZeroSSL, …) For every public TLS/SSL certificate, CAs must verify, at a minimum, the requestors' domain.e.g. Let’s encrypt.  
 - Generating not trusted certificates just for testing:  
 
-    ```
+    ```shell
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout <helmFolder>/certs/tls.key -out <helmFolder>/certs/tls.crt -subj "/CN=*.local"
     ```
 
 ## Helm Repo operations
-```
+```shell
 # Add a new repo
 # https://helm.sh/docs/helm/helm_repo_add/
 helm repo add <repoName> <url>
   # Examples:
-  bhelm repo add bitnami https://charts.bitnami.com/bitnami
+  # helm repo add bitnami https://charts.bitnami.com/bitnami
 
 # View the names of the downloaded repos
 helm repo list  
-
+# Update the info of a repo
+helm repo update <repo>
+  # helm repo update bitnami
+  
 # Search all the versions for a repo/chart
 helm search repo <repoName>/<chartName> --versions  
   # Examples:
-  helm search repo bitnami/keycloak --versions
-  helm search repo bitnami/mongo --versions
-  helm search repo bitnami/jupyterhub --versions
-  helm search repo fiware/trusted-issuers-list --versions
-  helm search repo bitnami/apisix --versions
+  # helm search repo bitnami/keycloak --versions
+  # helm search repo bitnami/mongo --versions
+  # helm search repo bitnami/jupyterhub --versions
+  # helm search repo fiware/trusted-issuers-list --versions
+  # helm search repo bitnami/apisix --versions
 ```
 
 ## Install yq
 The yq is a tool to analyze yaml files.
-```
-        wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./yq && chmod +x ./yq && sudo mv ./yq /usr/bin"
+```shell
+wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./yq && chmod +x ./yq && sudo mv ./yq /usr/bin"
 ```
 ## Install jq
 jq is a tool to analyze json files
-```
+```shell
   sudo apt-get install jq
 ```

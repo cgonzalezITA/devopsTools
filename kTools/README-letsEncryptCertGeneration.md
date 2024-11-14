@@ -1,4 +1,16 @@
 # K8s components to get a let's encrypt certificate generated 
+- [K8s components to get a let's encrypt certificate generated](#k8s-components-to-get-a-lets-encrypt-certificate-generated)
+  - [Method 1](#method-1)
+  - [Method 2](#method-2)
+    - [Generation](#generation)
+    - [Verification](#verification)
+    - [Other operations](#other-operations)
+      - [Extract the certificate and the private key](#extract-the-certificate-and-the-private-key)
+      - [Generate a cert.pfx file](#generate-a-certpfx-file)
+      - [Clean the resources used](#clean-the-resources-used)
+    - [Errors during verification](#errors-during-verification)
+
+
 Based on the description done at 
 https://dev.to/ileriayo/adding-free-ssltls-on-kubernetes-using-certmanager-and-letsencrypt-a1l  
 Let's Encrypt is a nonprofit Certificate Authority that provides TLS certificates to 300 million websites.  
@@ -17,7 +29,7 @@ STEPS:
 > 
 3- Create the clusterIssuer manifest 
 The **secret-fiwaredsc-ita.es** string must be updated to match the certificate name to be generated.  
-```
+```shell
 CLUSTERISSUER_YAML_FILE=clusterIssuer.yaml
 echo "apiVersion: cert-manager.io/v1                            " >  $CLUSTERISSUER_YAML_FILE
 echo "kind: ClusterIssuer # I'm using ClusterIssuer here        " >> $CLUSTERISSUER_YAML_FILE
@@ -39,7 +51,7 @@ echo "          class: traefik                                  " >> $CLUSTERISS
 
 
 5- Create or update ingress using the following annotation:  
-```
+```yaml
   apiVersion: networking.k8s.io/v1
   kind: Ingress
 ...
@@ -52,7 +64,7 @@ echo "          class: traefik                                  " >> $CLUSTERISS
       secretName: secret-fiwaredsc-ita.es # secret name, same as the privateKeySecretRef in the (Cluster)Issuer
 ```
 For example:
-```
+```yaml
   apiVersion: networking.k8s.io/v1
   kind: Ingress
   metadata:
@@ -100,7 +112,7 @@ For example:
 STEPS:  
 ### Generation
 1- Deploy the cert-manager (via helm)
-```
+```shell
 helm repo add jetstack https://charts.jetstack.io
 helm repo update
 helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version vX.Y.Z --set installCRDs=true
@@ -110,7 +122,7 @@ X.Y.Z can be taken from https://artifacthub.io/packages/helm/cert-manager/cert-m
 2- Generate the yaml with the clusterissuer and the certificate  
 These components generate a let's encrypt certificate for the given 'dnsNames:'
 [How to solve problems](https://cert-manager.io/docs/troubleshooting/)
-```
+```shell
   (  +---------+  )
   (  | Ingress |  ) Optional                                   |  ACME Only! 
   (  +---------+  )                                            |
@@ -125,7 +137,7 @@ Interesting links:
 - https://stackoverflow.com/questions/63346728/issuing-certificate-as-secret-does-not-exist
 
 Shell commands to generate the yaml file with the clusterIssuer and the certificate definitions:  
-```
+```shell
 #TB Customized: CLUSTERISSUER_YAML_FILE
 CLUSTERISSUER_YAML_FILE=clusterIssuer_and_certificate.yaml
 
@@ -195,9 +207,9 @@ EOF
 
 ### Verification
 4- Check the status of the certificate
-```
+```shell
 kubectl -n ns-certs-generation get certs
-OR
+# or
 kGet -a certs -n ns-certs
 NAMESPACE             NAME               READY      SECRET                 AGE
 ns-certs-generation   letsencrypt-cert   TRUE|FALSE letsencrypt-cert-tls   13s
@@ -205,9 +217,9 @@ ns-certs-generation   letsencrypt-cert   TRUE|FALSE letsencrypt-cert-tls   13s
 The READY shows the status of the cert. It can be TRUE (success) or FALSE (error)
 
 4.1- View the details of the certificate
-```
+```shell
 kubectl describe -n ns-certs-generation certs  letsencrypt-cert
-or
+# or
 kDescribe -a certs -n ns cert
 # The output should contain a reference of a CertificateRequest artifact just created to generate the certificate:
 Events:
@@ -219,26 +231,26 @@ Events:
 ```
 
 4.2- Check the details of the just created CertificateRequest:
-```
+```shell
 kubectl describe -n ns-certs-generation CertificateRequest letsencrypt-cert-1
-# The sucessful generation should generate an output similar to:
-...
-  Conditions:
-    Last Transition Time:  2024-09-10T11:46:49Z
-    Message:               Certificate request has been approved by cert-manager.io
-    Reason:                cert-manager.io
-    Status:                True
-    Type:                  Approved
-    Message:               Certificate fetched from issuer successfully
-    Reason:                Issued
-    Status:                True
-    Type:                  Ready
+    # The sucessful generation should generate an output similar to:
+    # ...
+    #   Conditions:
+    #     Last Transition Time:  2024-09-10T11:46:49Z
+    #     Message:               Certificate request has been approved by cert-manager.io
+    #     Reason:                cert-manager.io
+    #     Status:                True
+    #     Type:                  Approved
+    #     Message:               Certificate fetched from issuer successfully
+    #     Reason:                Issued
+    #     Status:                True
+    #     Type:                  Ready
 ```
 
 5- Once the cert has been generated, the letsencrypt-cert-tls secret (specified at the certificate) should be available
-```
+```shell
 kubectl get secret  -n ns-certs-generation
-OR
+# or
 kGet  -n ns-certs-generation secrets letsencrypt-cert-tls
 
 #To extract its content, use the kSecret-show command. eg:
@@ -250,45 +262,45 @@ kSecret-show -n ns tls
 # Found [2] keys in the section [data] of the secret [letsencrypt-cert-tls]:
 #         ["tls.crt" "tls.key" ]
 # 1/2- Do you want to get value of key ["tls.crt"] (base64=true) [Y/n]? 
----
-- name:  "tls.crt"
-  value:  -----BEGIN CERTIFICATE-----
-...
------END CERTIFICATE-----
------BEGIN CERTIFICATE-----
-...
-...
------END CERTIFICATE-----
--  INFO of CER ["tls.crt"]:
-  subject=CN = fdsc-consumer-keycloak.ita.es
-  dates:
-    notBefore=Sep 10 10:48:44 2024 GMT
-    notAfter=Dec  9 10:48:43 2024 GMT
-  issuer=
-    countryName=US
-    organizationName=(STAGING) Let's Encrypt
-    commonName=(STAGING) Wannabe Watercress R11
----
-2/2- Do you want to get value of key ["tls.key"] (base64=true) [Y/n]? 
----
-- name:  "tls.key"
-  value:  -----BEGIN RSA PRIVATE KEY-----
-...
------END RSA PRIVATE KEY-----
----
+    # ---
+    # - name:  "tls.crt"
+    #   value:  -----BEGIN CERTIFICATE-----
+    # ...
+    # -----END CERTIFICATE-----
+    # -----BEGIN CERTIFICATE-----
+    # ...
+    # ...
+    # -----END CERTIFICATE-----
+    # -  INFO of CER ["tls.crt"]:
+    #   subject=CN = fdsc-consumer-keycloak.ita.es
+    #   dates:
+    #     notBefore=Sep 10 10:48:44 2024 GMT
+    #     notAfter=Dec  9 10:48:43 2024 GMT
+    #   issuer=
+    #     countryName=US
+    #     organizationName=(STAGING) Let's Encrypt
+    #     commonName=(STAGING) Wannabe Watercress R11
+    # ---
+    # 2/2- Do you want to get value of key ["tls.key"] (base64=true) [Y/n]? 
+    # ---
+    # - name:  "tls.key"
+    #   value:  -----BEGIN RSA PRIVATE KEY-----
+    # ...
+    # -----END RSA PRIVATE KEY-----
+    # ---
 ```
 
 ### Other operations  
 #### Extract the certificate and the private key
-```
+```shell
 kubectl get secret cert-tls-fdsc-consumer-keycloak.ita.es -n ns-certs-generation -o jsonpath='{.data.tls\.crt}' | base64 --decode > tls.crt
-OR
+# or
 kSecret-show -n ns-certs-generation cert-tls-fdsc-consumer-keycloak.ita.es > tls.crt (Answering Y and N to pickup just the tls.crt piece)
 
 
 kubectl get secret cert-tls-fdsc-consumer-keycloak.ita.es -n ns-certs-generation -o jsonpath='{.data.tls\.key}' | base64 --decode > c
 tls.key
-OR
+# or
 kSecret-show -n ns-certs-generation cert-tls-fdsc-consumer-keycloak.ita.es > tls.key (Answering N and Y to pickup just the tls.key piece)
 
 # The generated files have to be cleated to contain just the public (tls.crt) and the private (tls.key) files:
@@ -296,14 +308,14 @@ kSecret-show -n ns-certs-generation cert-tls-fdsc-consumer-keycloak.ita.es > tls
 # > tls.key: Should be cleaned to keep the content from the first -----BEGIN RSA PRIVATE KEY----- to the last -----END RSA PRIVATE KEY----- with a final end line
 ```
 #### Generate a cert.pfx file
-```
+```shell
 openssl pkcs12 -export -out cert.pfx -inkey tls.key -in tls.crt
 ```
 
 #### Clean the resources used
 WARNING. This step will remove the generated secret!!!!
 Once you are fully sure you want to get rid of everything, you can proceed with the destruction:
-```
+```shell
 kubectl delete -f $CLUSTERISSUER_YAML_FILE
 helm uninstall cert-manager
 ```

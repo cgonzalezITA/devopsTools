@@ -19,7 +19,7 @@ https://deepnote.com/app/mauriciojacobo/Instalando-Python-310-en-Ubuntu-63add209
 
 ## Create a python environment
 To install on the host the required python libraries it is strongly recommended to create a custom env  
-```
+```shell
 # Creates the env for the project
 ENVROOTFOLDER=/python/.envs # This is just a proposal, feel free to change it
 sudo mkdir -p  $ENVROOTFOLDER
@@ -32,7 +32,7 @@ $PYTHONCMD -m venv --copies $ENVROOTFOLDER/$ENVNAME
 ```
 
 ### Launch de environment in the host  
-```
+```shell
 # Activate the env
 export PYTHONENV=$ENVROOTFOLDER/$ENVNAME/bin  
 source $PYTHONENV/activate  
@@ -42,7 +42,7 @@ deactivate
 ```
 
 ### Install an environment file
-```
+```shell
 # pip command has to be installed. eg: sudo apt install python3-pip
 pip install --no-cache-dir -r src/main/python/requirements.txt
 ```
@@ -50,7 +50,7 @@ pip install --no-cache-dir -r src/main/python/requirements.txt
 ### Debugging a python project
 To debug in VSCode, install plugin "Python extension for Visual Studio Code"  
 Add a configuration similar to this one to the _.vscode/launch.json_
-```
+```json
 {
     "name": "P:RL4WH-API",
     "type": "debugpy",
@@ -71,14 +71,14 @@ Add a configuration similar to this one to the _.vscode/launch.json_
 
 ### To restart a flask app whenever a change happens
 At the docker compose file, use the _watchmedo_ command:
-```
-    command: 
+```shell
+    # command: 
       # This command restart the server whenever a change (in a file matching the patterms) happens is any of the folders. \
       # This command has a meaning if both /models and /app are mounted as volumes:
       sh -c "watchmedo auto-restart --directory=/app --directory=/models --patterns='*.py;*.csv;*.pth' --recursive -- python ./OPPy/main.py 5000"
 ```
 At the dockerFile, the _watchmedo_ tool has to be installed:
-```
+```docker
 FROM python:3.12.4-slim
 ...
 RUN apt-get update && \
@@ -95,14 +95,14 @@ Escaneo de directorios: pipreqs escanea los archivos de un directorio específic
 Generación de requirements.txt: A partir de las importaciones detectadas, pipreqs crea un archivo requirements.txt que lista los paquetes necesarios y sus versiones. Esto es útil para compartir o desplegar proyectos, ya que permite a otros instalar rápidamente las dependencias necesarias con pip install -r requirements.txt.
 
 ### Comandos básicos
-```
+```shell
 pip install pipreqs
 pipreqs /ruta/a/tu/proyecto
 pipreqs .
 ```
 
 ## Install and setup an environment using conda
-```
+```shell
 # Taken from https://docs.anaconda.com/miniconda/
 mkdir -p ~/miniconda3
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh

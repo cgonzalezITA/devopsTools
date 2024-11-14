@@ -14,7 +14,7 @@ This utility can help to add copyright or other relevant info on top of the file
 
 
 ## Check if a script is used sourced
-```
+```shell
 SCRIPTNAME=$BASH_SOURCE
 if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"; fi
 
@@ -25,7 +25,7 @@ if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
 ## Use of opts as arguments
 To use opts as arguments in your scripts: eg. sh userReg-flags.sh -f 'John Smith' -a 25 -u john
 Check the kTools/exec.sh as a reference
-```
+```shell
 function help() {
     HELP=""
     if test "$#" -ge 1; then
@@ -56,7 +56,7 @@ while true; do
 ## How to start VSCode with a certificate key
 The benefit of this approach is to avoid being asked for your user passwords by Visual Studio code once and again.  
 The scenario is that you are remotely connecting to server A from a windows PC W.
-```
+```shell
 # 1- Generate a keypair at the desired server A: 
 CERTFILENAME=~/.ssh/ed25519-vscode
 ssh-keygen -t ed25519 -f $CERTFILENAME 
@@ -67,17 +67,18 @@ cat $CERTFILENAME.pub >> ~/.ssh/authorized_keys
 
 # 3- Copy the content of the $CERTFILENAME (cat $CERTFILENAME) into a file of the Windows PC W (e.g. C:\Users\<user>\.ssh\zerowaste.itainova.es.key) and restrict the permissions to read only (multiline certificate must end with a newline after the “-----END OPENSSH PRIVATE KEY-----”)
 cat $CERTFILENAME
-
+```
 4- At the VSCode of the Windows PC W, edit the Remote Explorer config file (Open SSH config file) and describe the connection to the desired server.
-    Host zerowaste.itainnova.es
-        HostName <host name of the server A: eg. zerowaste.itainnova.es>
-        User <username: eg. cgonzalez>
-        IdentityFile <Path to the key certificate at the Windows PC W. eg: C:\Users\cgonzalez\.ssh\zerowaste.itainova.es.key>
+```
+Host zerowaste.itainnova.es
+    HostName <host name of the server A: eg. zerowaste.itainnova.es>
+    User <username: eg. cgonzalez>
+    IdentityFile <Path to the key certificate at the Windows PC W. eg: C:\Users\cgonzalez\.ssh\zerowaste.itainova.es.key>
 ```
 
 ## Certificates
 ### Analyze a pfx certificate (extract pieces)
-```
+```shell
 # Taken from https://support.kaspersky.com/KSMG/2.1/en-US/239064.htm
 # Used to analyze the certificate info. eg. Its alias name
 # Show cert.pfx info (requires secret) 
