@@ -18,7 +18,7 @@ BASEDIR=$(dirname "$SCRIPTNAME")
 # \t-n <NamespaceClue>: Specifies a clue of the namespace to be used                                    \n
 NSCLUE=""
 NAMESPACE="default"
-NAMESPACEDESC="in default namespace."
+NAMESPACEDESC="in default namespace"
 NAMESPACEARG=""
 # \t-fvn: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
 USENSCCLUE=true
@@ -167,7 +167,7 @@ elif [[ $COMMAND =~ ^(d|delete)$ ]]; then
     COMMAND="delete"
 fi
 
-getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT "$USECCLUE" "$CCLUE" "$NAMESPACEARG" "$COMMAND" false);
+getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT "$USECCLUE" "$CCLUE" "-n $NAMESPACE" "$COMMAND" false);
 RC=$?; 
 if test "$RC" -ne 0; then 
     echo -e $(help "  ERROR: $getArtifact_result");
@@ -193,12 +193,17 @@ if [ "$VERBOSE" = true ]; then
 fi
 MSG="QUESTION: [$COMMAND] [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC?"
 echo "---"
-read -p "$MSG. Are you sure [Y/n]? " -n 1 -r
+CMD="kubectl $COMMAND $NAMESPACEARG $K8SARTIFACT $CNAME"
+if [ "$VERBOSE" = true ]; then
+    echo "  Running command [${CMD}]"
+    echo "---"
+fi
+read -p "$MSG Are you sure [Y/n]? " -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[1Yy]$ ]]; then
     PVNAME=""
     if [ "$K8SARTIFACT" == "pvc" ]; then 
-        getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT false "$CNAME" "$NAMESPACEARG" "$COMMAND" false ":spec.volumeName");
+        getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT false "$CNAME" "-n $NAMESPACE" "$COMMAND" false ":spec.volumeName");
         RC=$?; 
         if test "$RC" -ne 0; then 
             echo -e $(help "  ERROR: $getArtifact_result");
@@ -206,24 +211,23 @@ if [[ $REPLY =~ ^[1Yy]$ ]]; then
         elif test "${#getArtifact_result}" -eq 0; then
             # Selected not to use the artifacts
             [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
-        else    
+        elif ! test "$getArtifact_result" == "<none>"; then
             PVNAME=$getArtifact_result;
         fi
     fi
 
-    CMD="kubectl $COMMAND $NAMESPACEARG $K8SARTIFACT $CNAME"
-    echo "  Running command [${CMD}]"
-    echo "---"
-    PVDETAILS=$( kubectl get pv $PVNAME)
     bash -c "$CMD"
+
     if test "${#PVNAME}" -gt 0; then
-        echo "  Deleted [$K8SARTIFACT] is bound to a [pv] [$PVNAME]."
+        PVDETAILS=$( kubectl get pv $PVNAME)
+        echo "  Deleted [$K8SARTIFACT] [$CNAME] is bound to a [pv] [$PVNAME]."
         echo -e "$PVDETAILS"
-        read -p "  Do you want to delete it. Are you sure [Y/n]? " -n 1 -r
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            CMD="kubectl $COMMAND pv $PVNAME"
+        CMD="kubectl $COMMAND pv $PVNAME"
+        if [ "$VERBOSE" = true ]; then
             echo -e "\n  Running command [${CMD}]"
-            echo "---"
+        fi
+        read -p "  Do you want to run the command to delete it. Are you sure [Y/n]? " -n 1 -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
             bash -c "$CMD"
         fi
     fi
