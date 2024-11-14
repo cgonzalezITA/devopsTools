@@ -42,7 +42,7 @@ GREPEXCLUDE=""
 # GREPEXCLUDECLOSEPARAMS=""
 # \t-w: wait (3 seconds wait before running the command)                                                \n
 DOWAIT=false
-# \t-y: No confirmation questions are asked                                                             \n
+# \t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
 #############################
 ## Functions               ##
@@ -53,7 +53,7 @@ function help() {
     fi
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue>                                                                \n 
             \t-h: Show help info                                                                                                    \n
-            \t-y: No confirmation questions are asked                                                             \n
+            \t[-y|--yes]: No confirmation questions are asked \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)                              \n
             \t-c <artifact name>: Container inside the artifact to be used.                                                             \n
             \t-fvn: Force namespace name match the given clue (using this, the clue is not a clue, but the name)                    \n

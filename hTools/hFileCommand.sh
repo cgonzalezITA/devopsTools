@@ -62,7 +62,7 @@ COMMANDSDEBUG=" debug dbg "
 COMMANDSTEST=" test t "
 COMMANDSIDEBUG=" idebug "
 COMMANDNAMES=" $COMMANDSINSTALL $COMMANDSDELETE $COMMANDSRESTART $COMMANDSUPGRADE $COMMANDSDEBUG $COMMANDSTEST $COMMANDSIDEBUG "
-# \t-f <folder with helm config>: Folder where the config file must be located (def value: ./HValues    \n
+# \t-hf <folder with helm config>: Folder where the config file must be located (def value: ./HValues    \n
 FOLDER_HELMBASE=./Helms
 # \t-fv: Force secretname match the given clue (using this, the clue is not a clue, but the name)       \n
 USECCLUE=true
@@ -73,9 +73,9 @@ CCLUEORIG=""
 USENSCCLUE=true
 # \t-b: Runs a dependency build command that is required for umbrella charts for being updated          \n
 BUILDCMD=""
-# \t-y: No confirmation questions are asked                                                             \n
+# \t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
-# \t-vf: Value file name clue. By default the value file name is the one found at the config file, but it is overridden by this value \n
+# \t-vf|-f|-vFile: Value file name clue. By default the value file name is the one found at the config file, but it is overridden by this value \n
 FVALUESCLUE=""
 FVALUES=""
 USEFVALUESCLUE=true
@@ -87,21 +87,20 @@ function help() {
     if test "$#" -ge 1; then
         HELP="${1}\n"     
     fi
-    # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<command>:$COMMANDNAMES]\n 
+    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<command>]\n 
             \t-h: Show help info                                                                                  \n
             \t-n <NamespaceClue>: Specifies a clue of the namespace to be used                                    \n
             \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
-            \t-f <folder base to search for helm files>: (def value: ./Helms)                                     \n
+            \t-hf <folder base to search for helm files>: (def value: ./Helms)                                     \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)            \n
             \t-cf: Config name pattern (def.config.*) This file contains details of the helm chart: name, ns, chart\n
-            \t-vf: Value file name clue. By default the value file name is the one found at the config file, but it is overridden by this value \n
+            \t-vf|-f|-vFile: Value file name clue. By default the value file name is the one found at the config file, but it is overridden by this value \n
             \t-fvf: Force the given value file name is the one to be used, it is not a clue \n
             \t-v: Do not show verbose info                                                                        \n
-            \t-y: No confirmation questions are asked                                                             \n
+            \t[-y|--yes]: No confirmation questions are asked \n
             \t-b: Runs a dependency build command that is required for umbrella charts for being updated          \n
             \t<component clue>: Clue to identify the artifact file name. all to run command on all yaml files     \n
-            \t[<command>] Command to be executed against the artifact file: $COMMANDNAMES"
+            \t[<command>] Command to be executed against the artifact file. Use one of [$COMMANDNAMES]"
                                                                             
     echo $HELP
 }
@@ -129,8 +128,8 @@ while true; do
         -fvn | -fnv | --forceNamespaceValue ) 
             USENSCCLUE=false; 
             shift ;;
-        # \t-vf: Value file name clue. By default the value file name is the one found at the config file, but it is overridden by this value \n
-        -vf | --valuefile )
+        # \t-vf|-f|vFile: Value file name clue. By default the value file name is the one found at the config file, but it is overridden by this value \n
+        -vf| -f| -vFile )
             FVALUESCLUE=$2;
             shift ; shift ;;
         -fvf | --forcevaluefile ) 
@@ -141,7 +140,7 @@ while true; do
             # \t-cf: Config name pattern (def.config.*) This file contains details of the helm chart: name, ns, chart\n
             CONFIGNAME_PATTERN=$2;
             shift ; shift ;;
-        -f ) 
+        -hf ) 
             FOLDER_HELMBASE=$2
             shift ; shift ;;
         -n | --namespace ) 
@@ -179,7 +178,7 @@ fi
 
 
 if ! test -d $FOLDER_HELMBASE;then 
-    echo -e $(help "ERROR: Folder [$FOLDER_HELMBASE] must exist. Use -f option to use an alternate folder");
+    echo -e $(help "ERROR: Folder [$FOLDER_HELMBASE] must exist. Use -hf option to use an alternate folder");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 fi
 
@@ -204,7 +203,7 @@ fi
 
 
 if [[ "$CCLUE" =~ ^(all)$ ]]; then
-    # echo "CCLUE=* deploys all the files in the specified folder, so the -f <folder> has to be used"
+    # echo "CCLUE=* deploys all the files in the specified folder, so the -hf <folder> has to be used"
     USECCLUE=false
     FCONFIG=$CCLUE
 fi
@@ -410,6 +409,11 @@ if [ "$VERBOSE" = true ]; then
     echo -e "#  >ASK=[$ASK]" 
 fi
 
+if ! test -f $FVALUES; then 
+    echo -e $(help "ERROR: Values file [$FVALUES] must exist. Use -f option to give a clue of its name");
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
+fi
+
 if [ "$FCONFIG" == "all" ]; then
     IDX=1
     CMDF="find \"$FOLDER_HELMBASE\" -maxdepth 1 -name hConfig-*.* -type f"
@@ -417,9 +421,7 @@ if [ "$FCONFIG" == "all" ]; then
     echo "NFILES=$NFILES"
     X=""
     for filename in $(/bin/bash -c "$CMDF"); do
-        CMDA="$SCRIPTNAME $BUILDCMD -v -fnv $NAMESPACEARG -f \"$FOLDER_HELMBASE\" -fv \"$filename\" $COMMAND"
-        # CMDA="$SCRIPTNAME $NAMESPACEARG -v -f \"\" -fv $filename $COMMAND"
-        # CMDA="helm $COMMAND $NAMESPACEARG -f $filename"
+        CMDA="$SCRIPTNAME $BUILDCMD -v -fnv $NAMESPACEARG -hf \"$FOLDER_HELMBASE\" -fv \"$filename\" $COMMAND"
         echo -e "---\nINFO ($IDX/$NFILES): Executing command [$CMDA]"
         IDX=$(($IDX+1))
         # { err=$(cmd 2>&1 >&3 3>&-); } 3>&1
@@ -435,11 +437,15 @@ fi
 
 
 if [[ $COMMANDSTEST =~ " $COMMAND " ]]; then
+    CMD="helm $NAMESPACEARG install -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG --create-namespace"
+    if [ "$VERBOSE" = true ]; then
+        echo "# Running CMD=[$CMD]"
+    fi
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     if [ "$ASK" == true ]; then ASKFLAG=""; else ASKFLAG="-y"; fi
     if test "${#FVALUESCLUE}" -gt 0; then
-        FVALUESCMD=" -fvf -vf \"$FVALUES\""
+        FVALUESCMD=" -fvf -f \"$FVALUES\""
     else
         FVALUESCMD=""
     fi

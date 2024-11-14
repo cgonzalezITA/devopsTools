@@ -22,7 +22,7 @@ NAMESPACEARG=""
 VERBOSE=true
 FOLDER_VALUES=./KArtifacts
 COMMAND=""
-# \t-y: No confirmation questions are asked                                                             \n
+# \t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
 # \t-fv: Force secretname match the given clue (using this, the clue is not a clue, but the name)       \n
 USECCLUE=true
@@ -47,7 +47,7 @@ function help() {
             \t                    export DEF_KTOOLS_NAMESPACE=<NSCLUE> env var to avoid having to repeat it on kTools commands \n
             \t-nd: Shortcut for -n default                                                                             \n
             \t-v: Do not show verbose info                                                                         \n
-            \t-y: No confirmation questions are asked                                                             \n
+            \t[-y|--yes]: No confirmation questions are asked \n
             \t<component clue>: Clue to identify the artifact file name. all to run command on all yaml files      \n
             \t[<command>] Command to be executed against the artifact file: apply*|delete|restart|test"
     echo $HELP

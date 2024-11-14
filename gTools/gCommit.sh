@@ -20,7 +20,7 @@ SUBMODULE=""
 PWD1=$(pwd)
 C1=""
 C2=""
-# \t-y: No confirmation questions are asked                                                             \n
+# \t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
 # \t[-t|--tag] TAG: Adds a tag to commit \n
 # \t[-f| -ft |--ftag] TAG: Forces an existing tag to be updated to the committed head \n

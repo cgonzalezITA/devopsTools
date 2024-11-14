@@ -24,7 +24,7 @@ PODCLUE=""
 # \t<command>: Command to be executed inside the pod"
 COMMAND=""
 ARTIFACT=ps
-# \t-y: No confirmation questions are asked                                                             \n
+# \t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
 
 #############################
@@ -36,7 +36,7 @@ function help() {
     fi
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <docker name clue> [<command:def: sh>]                         \n 
             \t-h: Show help info                                                                            \n
-            \t-y: No confirmation questions are asked                                                             \n
+            \t[-y|--yes]: No confirmation questions are asked \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)      \n
             \t-v: Do not show verbose info                                                                  \n
             \t<componet name clue>: Clue to identify the running docker                                     \n
