@@ -20,7 +20,7 @@ NSCLUE=""
 NAMESPACE="default"
 NAMESPACEDESC="in default namespace."
 NAMESPACEARG=""
-# \t-ans: Search artifacts in all namespaces                                                                   \n
+# \t[-ans|--all-namespaces]: Search artifacts in all namespaces \n
 # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
 # \t-v: Do not show verbose info                                                                        \n
 VERBOSE=true
@@ -38,6 +38,10 @@ ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deploym
 OUTPUTFORMATS=" yaml json wide "
 # \t-o <outputFormat>: One of [$OUTPUTFORMATS] \n
 OUTPUTFORMAT=""
+# \t[-y|--yes]: No confirmation questions are asked \n
+ASK=true
+# [-ans | --all-namespaces) 
+
 #############################
 ## Functions               ##
 #############################
@@ -49,14 +53,15 @@ function help() {
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] [<k8s artifact>:pod*|all|service|challenge|ingres|...] [<component clue>] \n 
             \t-h: Show help info                                                                                       \n
             \t-a <artifact>: used to access no standard kubernete artifacts (challenges, clusterissuer, ...)           \n
-            \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)                 \n
+            \t[-y|--yes]: No confirmation questions are asked \n
             \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)       \n
             \t-n <NamespaceClue>: Specifies a clue of the namespace to be used.                                        \n
             \t                    export DEF_KTOOLS_NAMESPACE=<NSCLUE> env var to avoid having to repeat it on kTools commands  \n
             \t-nd: Shortcut for -n default                                                                             \n
-            \t-ans: Search artifacts in all namespaces                                                                   \n
+            \t- [-ans|--all-namespaces]: Search artifacts in all namespaces \n
             \t-v: Do not show verbose info                                                                             \n
             \t-o <outputFormat>: One of [$OUTPUTFORMATS] \n
+            \t-fv: Force component's name match the given component's clue (using this, the clue is not a clue, but the name). It makes sense when using -o yaml|json option \n
             \t[<component clue>]: Clue to identify the artifact file name|all                                          \n
             \t[<k8s artifact>]: k8s Artifact to show info about. Values: pod*, all, svc, ...                           \n
             \n[<component clue>] and [<k8s artifact>] can in some context be swapped to match existing artifacts"
@@ -77,6 +82,8 @@ while true; do
             echo -e $(help);
             if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
             break ;;
+        -y | --yes ) 
+            ASK=false; shift ;;
         -o | --output)
             # \t-o <outputFormat>: One of [$OUTPUTFORMATS] \n
             OUTPUTFORMAT="-o $2"
@@ -129,7 +136,9 @@ if test "${#CCLUE}" -eq 0; then
 else
     CCLUEEMPTY=false
     if test "${#K8SARTIFACT}" -eq 0 && [[ ${ARTIFACTSFULLNAMES[@]} =~ " $CCLUE " ]];  then
-        echo "# NOTE: CCLUE [$CCLUE] matches a k8s artifact name. To use [$CCLUE] as a clue for the component's name use syntax -a <k8sArtifact> $CCLUE"
+        if [ "$VERBOSE" = true ]; then
+            echo "# NOTE: CCLUE [$CCLUE] matches a k8s artifact name. To use [$CCLUE] as a clue for the component's name use syntax -a <k8sArtifact> $CCLUE"
+        fi
         K8SARTIFACT=$CCLUE
         CCLUE=""
     fi
@@ -179,25 +188,9 @@ if test "${#NSCLUE}" -gt 0; then
     NAMESPACEARG="-n $NAMESPACE"; 
 fi
 
-if  [ "$K8SARTIFACT" == "all" ]; then
-    # Gets all k8s artifacts. As shown in https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
-    echo "---"
-    echo "Gets all artifacts matching the clue [$CCLUE] $NAMESPACEDESC..."
-    for artifact in $ARTIFACTS; do
-        item=$CCLUE
-
-        echo "---"
-        read -p "  Getting [$artifact] $item: (press a key to continue)" -n 1 -r
-        echo "";
-        $SCRIPTNAME -fnv $NAMESPACEARG -fv -a $artifact $item 
-    done
-    echo ""
-    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-fi
-
 # From here, $K8SARTIFACT != all for sure
 if  [ "${#CCLUE}" -eq 0 ] && [[ "$OUTPUTFORMAT" =~ ^(-o yaml|-o json)$ ]]; then
-    echo -e $(help "  ERROR: -o option [$OUTPUTFORMAT] requires a k8s component clue. None was given");
+    echo -e $(help "  ERROR: -o option [$OUTPUTFORMAT] requires a k8s component's name'. None was given");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 elif [ "${#CCLUE}" -eq 0 ]; then
     GREPCMD=""
@@ -211,7 +204,7 @@ elif [[ "$OUTPUTFORMAT" =~ ^(-o yaml|-o json)$ ]]; then
         echo -e $(help "  ERROR: $getArtifact_result");
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     elif test "${#getArtifact_result}" -eq 0; then
-        echo -e $(help "  ERROR: -o option [$OUTPUTFORMAT] requires a k8s component clue. None was given");
+        echo -e $(help "  ERROR: -o option [$OUTPUTFORMAT] requires a k8s component's name. None was given");
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     else    
         PATTERNDESC=$getArtifact_result;
@@ -237,14 +230,32 @@ if [ "$VERBOSE" = true ]; then
     MSG="[$NSCLUE] -> [$NAMESPACE]"
     if [[ "$DEF_KTOOLS_NAMESPACE_USED" ]]; then MSG="$MSG. Taken from  DEF_KTOOLS_NAMESPACE=[$DEF_KTOOLS_NAMESPACE]"; fi
     echo -e "# NAMESPACE=$MSG" | egrep --color=auto  $NSCLUE
-    echo "# K8SARTIFACT=[$K8SARTIFACT]"
+    echo "# K8SARTIFACT=[$K8SARTIFACT]"| egrep --color=auto  $K8SARTIFACT
     CMD1="echo -e  '# K8S_COMPONENTNAME=[$CCLUE]->$PATTERNDESC' $GREPCMD"
     bash -c "$CMD1"
     echo "# COMMAND=[$COMMAND]"
     if ! test "${#OUTPUTFORMAT}" -eq 0; then
         echo "# OUTPUT=[$OUTPUTFORMAT]"
     fi
+    echo "VERBOSE=[$ASK]" 
     echo "#   Running command [$CMD]"
-    echo "---"
 fi
-eval $CMD
+
+
+if  [ "$K8SARTIFACT" == "all" ]; then
+    # Gets all k8s artifacts. As shown in https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+    item=$CCLUE
+    for artifact in $ARTIFACTS; do
+        echo "---"
+        if [ "$ASK" = true ]; then
+            read -p "  Showing [$artifact] '*$item*' $NAMESPACEDESC: (press a key to continue)" -n 1 -r
+            echo "";
+        fi
+        $SCRIPTNAME -fnv $NAMESPACEARG -a $artifact -fv $item -v -y
+    done
+    echo ""
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+else
+    echo -e "---\n# Showing $K8SARTIFACT '*$CCLUE*' $NAMESPACEDESC" | egrep --color=auto  $K8SARTIFACT
+    eval $CMD
+fi
