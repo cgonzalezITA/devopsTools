@@ -152,6 +152,8 @@ else
     CNAME=$getArtifact_result;
 fi
 
+
+CMD="kubectl exec -it $NAMESPACEARG $CNAME $CARG -- $COMMAND"
 if [ "$VERBOSE" = true ]; then
     echo "---"
     echo "INFO: EXECUTING COMMAND [$COMMAND] inside [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC"
@@ -165,41 +167,10 @@ if [ "$VERBOSE" = true ]; then
     echo "  COMPONENT=[${CCOMPONENT}]"
     echo -e "  CONTAINERS IN POD [$CNAME]:     $(kubectl get $NAMESPACEARG $K8SARTIFACT $CNAME -o jsonpath='{.spec.containers[*].name}')" | egrep --color=auto  "$CCOMPONENT"
     echo -e "  INITCONTAINERS IN POD [$CNAME]: $(kubectl get $NAMESPACEARG $K8SARTIFACT $CNAME -o jsonpath='{.spec.initContainers[*].name}')" | egrep --color=auto  "$CCOMPONENT"
+    echo "  Running command [${CMD}]"
+    echo "---"
 fi
 
-# if [ "$USECCLUE" = true ]; then
-#     CNAME=$(kubectl get pods $NAMESPACEARG --no-headers -o custom-columns=":metadata.name" --sort-by=.status.startTime | tac | grep $CCLUE)
-# else
-#     CNAME=$CCLUE
-# fi
-# if test "${#CNAME}" -eq 0; then
-#     echo -e $(help "ERROR: No pod with clue [$CCLUE] has been found $NAMESPACEDESC");
-# else
-#     NLINES=$(echo "$CNAME" | wc -l)
-#     if test "$NLINES" -ne 1; then
-#         echo -e $(help "ERROR: POD clue [$CCLUE] is too generic. [$NLINES] matches have been found: [$CNAME]")
-#         kubectl get pods $NAMESPACEARG  --sort-by=.status.startTime | grep $CCLUE
-#         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-#     else
-#         echo INFO: EXECUTING COMMAND [$COMMAND] inside [$CNAME] $NAMESPACEDESC 
-#         echo "---"
-#         kubectl exec -it $NAMESPACEARG $CNAME $CARG -- "$COMMAND"
-#         RC=$?; 
-#         if test "$RC" -ne 0; then 
-#             echo "ERROR: Error running command [$COMMAND]"
-#             if [[ "$COMMAND" =~ (bash)$ ]]; then
-#                 COMMAND="/bin/sh"
-#                 echo -e "INFO: Trying  command [$COMMAND] instead\n---"
-#             fi
-#             kubectl exec -it $NAMESPACEARG $CNAME $CARG -- "$COMMAND"
-#         fi;
-#     fi
-# fi
-
-
-CMD="kubectl exec -it $NAMESPACEARG $CNAME $CARG -- $COMMAND"
-echo "  Running command [${CMD}]"
-echo "---"
 bash -c "$CMD"
 RC=$?; 
 if test "$RC" -eq 126; then 

@@ -218,6 +218,7 @@ else
 fi
 
 
+CMD="kubectl $COMMAND $NAMESPACEARG $K8SARTIFACT $CGARG $CNAME"
 if [ "$VERBOSE" = true ]; then
     MSG="[$NSCLUE] -> [$NAMESPACE]"
     if [[ "$DEF_KTOOLS_NAMESPACE_USED" ]]; then
@@ -235,9 +236,8 @@ if [ "$VERBOSE" = true ]; then
             [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
         fi
     fi
+    echo "  INFO: Getting description of [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC"
+    echo "---"
+    echo "  Running command [${CMD}]"
 fi
-echo "  INFO: Getting description of [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC"
-CMD="kubectl $COMMAND $NAMESPACEARG $K8SARTIFACT $CGARG $CNAME"
-echo "  Running command [${CMD}]"
-echo "---"
 bash -c "$CMD"
