@@ -507,8 +507,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
         if [ "$VERBOSE" = true ]; then
             echo -e "# WARNING: [$COMMAND] does not connect to the k8s API, so functions like 'lookup' and others will not retrieve valid info.\n \
             # This could lead to some misleading errors such as resources not found in the running k8s cluster\n\
-            # USE idebug (Install debug) to view the real k8s generated artifacts although this command will install the chart if correct\n\
-            ---"
+            # USE idebug (Install debug) to view the real k8s generated artifacts although this command will install the chart if correct"
         fi
     fi
     if [ "$VERBOSE" = true ]; then

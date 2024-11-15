@@ -139,7 +139,7 @@ if test "${#NSCLUE}" -gt 0; then
     NAMESPACEARG="-n $NAMESPACE"; 
 fi
 
-getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT "$USECCLUE" "$CCLUE" "$NAMESPACEARG" "$COMMAND" false);
+getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT "$USECCLUE" "$CCLUE" "-n $NAMESPACE" "get Secret" false);
 RC=$?; 
 if test "$RC" -ne 0; then 
     echo -e $(help "  ERROR: $getArtifact_result");

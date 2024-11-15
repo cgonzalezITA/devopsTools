@@ -27,7 +27,11 @@ fi
 
 NLINES=$(echo "$NAMESPACE" | wc -l)
 if test "$NLINES" -ne 1; then
-    echo ERROR: NAMESPACE clue [$NAMESPACECLUE] is too generic. [$NLINES] matches have been found: [$NAMESPACE]
+    MSG="ERROR: NAMESPACE clue [$NAMESPACECLUE] is too generic. [$NLINES] ns have been found: [$NAMESPACE]"
+    if test "${#DEF_KTOOLS_NAMESPACE}" -gt 0; then
+        MSG="$MSG. Review env var DEF_KTOOLS_NAMESPACE=[$DEF_KTOOLS_NAMESPACE]"
+    fi
+    echo $MSG
     if [ "$CALLMODE" == "executed" ]; then exit -3; else return -3; fi
 fi
 echo $NAMESPACE

@@ -256,6 +256,7 @@ if  [ "$K8SARTIFACT" == "all" ]; then
     echo ""
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 else
-    echo -e "---\n# Showing $K8SARTIFACT '*$CCLUE*' $NAMESPACEDESC" | egrep --color=auto  $K8SARTIFACT
+    [ ${#CCLUE} -gt 0 ] && CLUEDESC="'*$CCLUE*' " || CLUEDESC="";
+    echo -e "---\n# Showing $K8SARTIFACT $CLUEDESC$NAMESPACEDESC" | egrep --color=auto  $K8SARTIFACT
     eval $CMD
 fi
