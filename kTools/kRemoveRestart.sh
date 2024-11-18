@@ -34,6 +34,8 @@ ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deploym
 # \t-fs: Force process  match the given clue (using this, the clue is not a clue, but the name)       \n
 USECCLUE=true
 CCLUE=""
+# t[-y|--yes]: No confirmation questions are asked \n
+ASK=true
 
 #############################
 ## Functions               ##
@@ -45,6 +47,7 @@ function help() {
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<k8s artifact>:pod*|service|challenge|ingres|...]  \n
             \t-h: Show help info                                                                                         \n
+            \t[-y|--yes]: No confirmation questions are asked \n
             \t-a <artifact>: used to access no standard kubernete artifacts (challenges, clusterissuer, ...)             \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)                   \n
             \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)         \n
@@ -76,6 +79,8 @@ while true; do
         #     FOLDER_ARTIFACTS=$2
         #     if ! test -d $FOLDER_ARTIFACTS;then echo -e $(help "ERROR: Folder [$FOLDER_ARTIFACTS] must exist");return -1; fi;
         #     shift ; shift ;;
+        -y | --yes ) 
+            ASK=false; shift ;;
         -fv|--forcevalue) 
             USECCLUE=false; shift ;;
         -c | --command ) 
@@ -157,7 +162,6 @@ if test "${#NSCLUE}" -gt 0; then
     NAMESPACEARG="-n $NAMESPACE"; 
 fi
 
-
 if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]]; then
     echo -e $(help "# ERROR: <command> must be one of [$COMMANDSAVAILABLE]");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
@@ -173,7 +177,7 @@ if test "$RC" -ne 0; then
     echo -e $(help "  ERROR: $getArtifact_result");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 elif test "${#getArtifact_result}" -eq 0; then
-    # Selected not to use the artifacts
+    echo -e $(help "  ERROR: $getArtifact_result");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 else    
     CNAME=$getArtifact_result;
@@ -192,14 +196,16 @@ if [ "$VERBOSE" = true ]; then
     echo -e "  Matching [$K8SARTIFACT]:\n$( kubectl get $NAMESPACEARG $K8SARTIFACT $CNAME)"
 fi
 MSG="QUESTION: [$COMMAND] [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC?"
-echo "---"
 CMD="kubectl $COMMAND $NAMESPACEARG $K8SARTIFACT $CNAME"
 if [ "$VERBOSE" = true ]; then
     echo "  Running command [${CMD}]"
     echo "---"
 fi
-read -p "$MSG Are you sure [Y/n]? " -n 1 -r
-echo    # (optional) move to a new line
+if [ "$ASK" = true ]; then
+    read -p "$MSG Are you sure [Y/n]? " -n 1 -r
+    echo    # (optional) move to a new line
+else REPLY="y"; fi
+
 if [[ $REPLY =~ ^[1Yy]$ ]]; then
     PVNAME=""
     if [ "$K8SARTIFACT" == "pvc" ]; then 
@@ -220,13 +226,15 @@ if [[ $REPLY =~ ^[1Yy]$ ]]; then
 
     if test "${#PVNAME}" -gt 0; then
         PVDETAILS=$( kubectl get pv $PVNAME)
-        echo "  Deleted [$K8SARTIFACT] [$CNAME] is bound to a [pv] [$PVNAME]."
-        echo -e "$PVDETAILS"
         CMD="kubectl $COMMAND pv $PVNAME"
         if [ "$VERBOSE" = true ]; then
+            echo "  Deleted [$K8SARTIFACT] [$CNAME] is bound to a [pv] [$PVNAME]."
+            echo -e "$PVDETAILS"
             echo -e "\n  Running command [${CMD}]"
         fi
-        read -p "  Do you want to run the command to delete it. Are you sure [Y/n]? " -n 1 -r
+        if [ "$ASK" = true ]; then
+            read -p "  Do you want to run the command to delete it. Are you sure [Y/n]? " -n 1 -r
+        else REPLY="y"; fi
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             bash -c "$CMD"
         fi

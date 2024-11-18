@@ -42,8 +42,10 @@ GREPEXCLUDE=""
 # GREPEXCLUDECLOSEPARAMS=""
 # \t-w: wait (3 seconds wait before running the command)                                                \n
 DOWAIT=false
-# \t[-y|--yes]: No confirmation questions are asked \n
+# t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
+# \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag is set)\n
+OUTPUTFILE=""
 #############################
 ## Functions               ##
 #############################
@@ -54,6 +56,7 @@ function help() {
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue>                                                                \n 
             \t-h: Show help info                                                                                                    \n
             \t[-y|--yes]: No confirmation questions are asked \n
+            \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag is set)\n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)                              \n
             \t-c <artifact name>: Container inside the artifact to be used.                                                             \n
             \t-fvn: Force namespace name match the given clue (using this, the clue is not a clue, but the name)                    \n
@@ -83,6 +86,12 @@ while true; do
             return 0 ;;
         -y | --yes ) 
             ASK=false; shift ;;
+        -o | --output )
+            # \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag is set)\n
+            OUTPUTFILE=$2
+            ASK=false
+            echo > ${OUTPUTFILE:-/dev/stdout}
+            shift ; shift ;;
         -fv | --forceValue ) 
             USECCLUE=false; shift ;;
         -s | --since ) 
@@ -197,20 +206,19 @@ CMD="kubectl get $NAMESPACEARG $K8SARTIFACT $CNAME -o jsonpath='{$SPECBASE.initC
 PODINITCONTAINERS=$(eval "$CMD")
 
 if [ "$VERBOSE" = true ]; then
-    echo "---"
-    echo "INFO: Showing logs of [$K8SARTIFACT] [$CNAME] (and all its initContainers) $NAMESPACEDESC"
+    echo "INFO: Showing logs of [$K8SARTIFACT] [$CNAME] (and all its initContainers) $NAMESPACEDESC" >> ${OUTPUTFILE:-/dev/stdout}; 
     MSG="[$NSCLUE] -> [$NAMESPACE]"
     if [[ "$DEF_KTOOLS_NAMESPACE_USED" ]]; then
         MSG="$MSG. Taken from  DEF_KTOOLS_NAMESPACE=[$DEF_KTOOLS_NAMESPACE]"
     fi
-    echo "NAMESPACE=$MSG" | egrep --color=auto  "$NSCLUE" 
-    echo "K8SARTIFACT=[$K8SARTIFACT]"
-    echo "K8S_COMPONENTNAME=[$CCLUE] -> [$CNAME]" | egrep --color=auto  "$CCLUE"
-    echo "SINCE=[${SINCEARG}]"
-    echo "STRING2EXCLUDE=$JSON2EXCLUDE"
+    echo "NAMESPACE=$MSG" >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$NSCLUE" 
+    echo "K8SARTIFACT=[$K8SARTIFACT]" >> ${OUTPUTFILE:-/dev/stdout}
+    echo "K8S_COMPONENTNAME=[$CCLUE] -> [$CNAME]" >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCLUE"
+    echo "SINCE=[${SINCEARG}]" >> ${OUTPUTFILE:-/dev/stdout}
+    echo "STRING2EXCLUDE=$JSON2EXCLUDE" >> ${OUTPUTFILE:-/dev/stdout}
     if test "${#PODCONTAINERS}" -gt 0; then
-        echo -e "  CONTAINERS IN [$K8SARTIFACT] [$CNAME]:     $PODCONTAINERS" | egrep --color=auto  "$CCOMPONENT"
-        echo -e "  INITCONTAINERS IN [$K8SARTIFACT] [$CNAME]: $PODINITCONTAINERS" | egrep --color=auto  "$CCOMPONENT"
+        echo -e "CONTAINERS IN [$K8SARTIFACT] [$CNAME]:     $PODCONTAINERS" >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCOMPONENT"
+        echo -e "INITCONTAINERS IN [$K8SARTIFACT] [$CNAME]: $PODINITCONTAINERS" >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCOMPONENT"
         # echo "  SHOW INFO OF CONTAINER=[${CARG}]"
     fi
 fi
@@ -227,17 +235,17 @@ function run() {
     MSG="# Running command [${CMD}]"
     if [ "$DOWAIT" = true ]; then
         MSG="$MSG\n    in 3 seconds (or press any key to continue)\n---"
-        echo -e $MSG
+        [ "$VERBOSE" = true ] && echo -e $MSG >> ${OUTPUTFILE:-/dev/stdout};
         read -t 3 -p ""
     else
-        echo -e $MSG
+        [ "$VERBOSE" = true ] && echo -e $MSG >> ${OUTPUTFILE:-/dev/stdout};
     fi
-    bash -c "$CMD"
+    bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
 }
 if test "${#CARG}" -eq 0; then
     if test "${#PODINITCONTAINERS}" -gt 0; then
         for INITCONTAINER in $PODINITCONTAINERS; do
-            echo "---"
+            [ "$VERBOSE" = true ] && echo "---" >> ${OUTPUTFILE:-/dev/stdout};
             if [ "$ASK" = true ]; then
                 read -p "    Do you want to view the logs of INIT container '$INITCONTAINER' [Y/n]? " -n 1 -r
                 echo > /dev/tty;
@@ -247,7 +255,7 @@ if test "${#CARG}" -eq 0; then
             fi
         done
         for CONTAINER in $PODCONTAINERS; do
-            echo "---"
+            [ "$VERBOSE" = true ] && echo "---" >> ${OUTPUTFILE:-/dev/stdout};
             REPLY='y'
             if test "${#PODINITCONTAINERS}" -gt 0; then
                 if [ "$ASK" = true ]; then
@@ -261,10 +269,10 @@ if test "${#CARG}" -eq 0; then
             fi
         done
     else
-        echo "---"
+        [ "$VERBOSE" = true ] && echo "---" >> ${OUTPUTFILE:-/dev/stdout};
         run
     fi
 else
-    echo "---"
+    [ "$VERBOSE" = true ] && echo "---" >> ${OUTPUTFILE:-/dev/stdout};
     run $CARG
 fi

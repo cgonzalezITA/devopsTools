@@ -42,8 +42,10 @@ if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"
         CMD=$( echo "kubectl get $artifact $CCLUE $NAMESPACEARG --no-headers -o $CCOLUMNDEF 2> /dev/null")
         CNAME=$( bash -c "$CMD")
         RC=$?; 
-        if test "$RC" -ne 0; then 
-            echo "" # No pod has been found!
+        if test "$RC" -ne 0; then
+            # No pod has been found!
+            echo "No [$artifact] found with the name [$CCLUE] at namespace [$NAMESPACEARG]";
+            if [ "$CALLMODE" == "executed" ]; then exit -2; else return -2; fi
         else
             echo $CNAME
         fi

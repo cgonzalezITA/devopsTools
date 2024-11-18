@@ -10,9 +10,9 @@ This folder contains infos to help working with python projects.
     - [Debugging a python project](#debugging-a-python-project)
     - [To restart a flask app whenever a change happens](#to-restart-a-flask-app-whenever-a-change-happens)
   - [Retrieval of the minimum set of required requirements](#retrieval-of-the-minimum-set-of-required-requirements)
-    - [¿Cómo funciona pipreqs?](#cómo-funciona-pipreqs)
-    - [Comandos básicos](#comandos-básicos)
-  - [Install and setup an environment using conda](#install-and-setup-an-environment-using-conda)
+    - [How does pipereqs work?](#how-does-pipereqs-work)
+    - [Basic commands](#basic-commands)
+  - [Install and setup an environment using Conda](#install-and-setup-an-environment-using-conda)
 
 ## Install python
 https://deepnote.com/app/mauriciojacobo/Instalando-Python-310-en-Ubuntu-63add209-89c0-4cee-b6c1-0db890b6dfbf
@@ -89,19 +89,20 @@ RUN pip install watchdog
 ```
 
 ## Retrieval of the minimum set of required requirements
-pipreqs es una herramienta de línea de comandos en Python que se utiliza para generar automáticamente un archivo requirements.txt basado en las importaciones de un proyecto. Este archivo es esencial en muchos proyectos de Python, ya que lista todas las dependencias necesarias para ejecutar el código.  
-### ¿Cómo funciona pipreqs?
-Escaneo de directorios: pipreqs escanea los archivos de un directorio específico (normalmente el directorio raíz del proyecto) en busca de importaciones de paquetes Python.  
-Generación de requirements.txt: A partir de las importaciones detectadas, pipreqs crea un archivo requirements.txt que lista los paquetes necesarios y sus versiones. Esto es útil para compartir o desplegar proyectos, ya que permite a otros instalar rápidamente las dependencias necesarias con pip install -r requirements.txt.
+pipreqs is a command-line tool in Python used to automatically generate a requirements.txt file based on a project's imports. This file is essential in many Python projects as it lists all the dependencies needed to run the code.
 
-### Comandos básicos
+### How does pipereqs work?
+Directory Scanning: pipreqs scans files in a specific directory (usually the root directory of the project) for Python package imports.
+Generation of requirements.txt: From the detected imports, pipreqs creates a requirements.txt file that lists the necessary packages and their versions. This is useful for sharing or deploying projects, as it allows others to quickly install the necessary dependencies with `pip install -r requirements.txt`.
+
+### Basic commands
 ```shell
 pip install pipreqs
 pipreqs /ruta/a/tu/proyecto
 pipreqs .
 ```
 
-## Install and setup an environment using conda
+## Install and setup an environment using Conda
 ```shell
 # Taken from https://docs.anaconda.com/miniconda/
 mkdir -p ~/miniconda3

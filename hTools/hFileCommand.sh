@@ -79,6 +79,8 @@ ASK=true
 FVALUESCLUE=""
 FVALUES=""
 USEFVALUESCLUE=true
+# \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag and dbg command are set)\n
+OUTPUTFILE=""
 #############################
 ## Functions               ##
 #############################
@@ -99,6 +101,7 @@ function help() {
             \t-v: Do not show verbose info                                                                        \n
             \t[-y|--yes]: No confirmation questions are asked \n
             \t-b: Runs a dependency build command that is required for umbrella charts for being updated          \n
+            \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag and dbg command are set) \n
             \t<component clue>: Clue to identify the artifact file name. all to run command on all yaml files     \n
             \t[<command>] Command to be executed against the artifact file. Use one of [$COMMANDNAMES]"
                                                                             
@@ -122,7 +125,14 @@ while true; do
             [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
             break ;;
         -y | --yes ) 
-            ASK=false; shift ;;
+            ASK=$([ "$ASK" == true ] && echo false || echo true); shift ;;
+        # \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag and dbg command are set)\n
+        -o | --output )
+            OUTPUTFILE=$2
+            ASK=false
+            COMMAND="debug"
+            echo > ${OUTPUTFILE:-/dev/stdout}
+            shift ; shift ;;
         -fv | --forcevalue ) 
             USECCLUE=false; shift ;;
         -fvn | -fnv | --forceNamespaceValue ) 
@@ -385,28 +395,35 @@ else
 fi
 
 if [ "$VERBOSE" = true ]; then
-    if test "${#NAMESPACE}" -gt 0; then echo -e "# -NAMESPACE=[$NSCLUE] -> [$NAMESPACE]" | egrep --color=auto  "$NSCLUE"; else echo "# -NAMESPACE=[$NSCLUE] -> [$NAMESPACE]"; fi
-    echo -e "# -NAMESPACECFG=$NAMESPACECFG         "
-    echo -e "# -FOLDER_HELMBASE=[$FOLDER_HELMBASE]    " 
-    if [ "$USECCLUE" = true ]; then 
-        echo -e "# -CONFIG_FILE=[$CCLUE] -> [$FCONFIG]" | egrep --color=auto "$CCLUEORIG"
+    if test "${#NAMESPACE}" -gt 0; then 
+        echo -e "# -NAMESPACE=[$NSCLUE] -> [$NAMESPACE]" | egrep --color=auto  "$NSCLUE"  >> ${OUTPUTFILE:-/dev/stdout}; 
     else 
-        echo -e "# -CONFIG_FILE=[$CCLUE] -> [$FCONFIG]"
+        echo "# -NAMESPACE=[$NSCLUE] -> [$NAMESPACE]"  >> ${OUTPUTFILE:-/dev/stdout}; 
     fi
-    echo -e "# -COMMAND=[$COMMAND]                 " | egrep --color=auto "$COMMAND"
-    echo -e "#  >CONFIGNAME_PATTERN=$CONFIGNAME_PATTERN" 
-    echo -e "#  >HELM_NAME=$CNAME                  " 
-    echo -e "#  >HELM_CHART=$CCHART                " 
-    echo -e "#  >VERSION=$VERSIONARG               "
+    echo -e "# -NAMESPACECFG=$NAMESPACECFG" >> ${OUTPUTFILE:-/dev/stdout}
+    echo -e "# -FOLDER_HELMBASE=[$FOLDER_HELMBASE]" >> ${OUTPUTFILE:-/dev/stdout} 
+    if [ "$USECCLUE" = true ]; then 
+        echo -e "# -CONFIG_FILE=[$CCLUE] -> [$FCONFIG]"  >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto "$CCLUEORIG"
+    else 
+        echo -e "# -CONFIG_FILE=[$CCLUE] -> [$FCONFIG]" >> ${OUTPUTFILE:-/dev/stdout}
+    fi
+    echo -e "# -COMMAND=[$COMMAND]"  >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto "$COMMAND"
+    echo -e "#  >CONFIGNAME_PATTERN=$CONFIGNAME_PATTERN" >> ${OUTPUTFILE:-/dev/stdout}
+    echo -e "#  >HELM_NAME=$CNAME"  >> ${OUTPUTFILE:-/dev/stdout}
+    echo -e "#  >HELM_CHART=$CCHART"  >> ${OUTPUTFILE:-/dev/stdout}
+    echo -e "#  >VERSION=$VERSIONARG" >> ${OUTPUTFILE:-/dev/stdout}
     MSG="#  >VALUES_FILE=" 
     if test "${#FVALUESCLUE}" -gt 0; then
         MSG="# >USE VALUES FILE CLUE=$USEFVALUESCLUE\n$MSG";
         MSG+="[$FVALUESCLUE]->";
     fi
     MSG+="[$FVALUES]";
-    echo -e "$MSG" | sed "s/\($FVALUESCLUE\)/\x1b[31m\1\x1b[0m/g"
-    if test "${#BUILDCMD}" -gt 0; then echo -e "#  >BUILD=$BUILDCMD"; fi
-    echo -e "#  >ASK=[$ASK]" 
+    echo -e "$MSG"  >> ${OUTPUTFILE:-/dev/stdout} | sed "s/\($FVALUESCLUE\)/\x1b[31m\1\x1b[0m/g"
+    if test "${#BUILDCMD}" -gt 0; then 
+        echo -e "#  >BUILD=$BUILDCMD" >> ${OUTPUTFILE:-/dev/stdout}; 
+    fi
+    echo -e "#  >ASK=[$ASK]"  >> ${OUTPUTFILE:-/dev/stdout}
+    echo -e "#  >OUTPUTFILE=[$OUTPUTFILE]"  >> ${OUTPUTFILE:-/dev/stdout}
 fi
 
 if ! test -f $FVALUES; then 
@@ -418,18 +435,18 @@ if [ "$FCONFIG" == "all" ]; then
     IDX=1
     CMDF="find \"$FOLDER_HELMBASE\" -maxdepth 1 -name hConfig-*.* -type f"
     NFILES=$( /bin/bash -c "$CMDF | wc -l")
-    echo "NFILES=$NFILES"
+    # echo "NFILES=$NFILES"
     X=""
     for filename in $(/bin/bash -c "$CMDF"); do
         CMDA="$SCRIPTNAME $BUILDCMD -v -fnv $NAMESPACEARG -hf \"$FOLDER_HELMBASE\" -fv \"$filename\" $COMMAND"
-        echo -e "---\nINFO ($IDX/$NFILES): Executing command [$CMDA]"
+        echo -e "# ---\n# INFO ($IDX/$NFILES): Executing command [$CMDA]" >> ${OUTPUTFILE:-/dev/stdout}
         IDX=$(($IDX+1))
         # { err=$(cmd 2>&1 >&3 3>&-); } 3>&1
         X1=$($CMDA 2>&1)
-        echo "$X1"
-        X="$X\n\t---From file $filename---\n$X1"
+        echo "$X1" >> ${OUTPUTFILE:-/dev/stdout}
+        X="$X\n\t# ---From file $filename---\n$X1"
     done
-    echo -e "---\nSummary:\n$X"
+    echo -e "# ---\nSummary:\n$X" >> ${OUTPUTFILE:-/dev/stdout}
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 fi
 # echo -e "# INFO: Executing helm command [$COMMAND] using values from file [$FVALUES] for component [$CNAME] and chart [$CCHART] $VERSIONDESC $NAMESPACEDESC"
@@ -439,7 +456,7 @@ fi
 if [[ $COMMANDSTEST =~ " $COMMAND " ]]; then
     CMD="helm $NAMESPACEARG install -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG --create-namespace"
     if [ "$VERBOSE" = true ]; then
-        echo "# Running CMD=[$CMD]"
+        echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     fi
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
@@ -449,28 +466,28 @@ elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     else
         FVALUESCMD=""
     fi
-    echo " INFO: 1. Deleting helm [$CNAME]:[$ASKFLAG]"
+    echo " INFO: 1. Deleting helm [$CNAME]:[$ASKFLAG]" >> ${OUTPUTFILE:-/dev/stdout}
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG --verbose -fv \"$FCONFIG\" $FVALUESCMD delete"
-    echo -e "# Running command [$CMD]"
-    eval "$CMD"
-    echo " INFO: 2. Installing helm [$CNAME]:"
+    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    eval "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
+    echo " INFO: 2. Installing helm [$CNAME]:" >> ${OUTPUTFILE:-/dev/stdout}
     sleep 1
 
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
-    echo -e "# Running command [$CMD]"
-    bash -c "$CMD"
+    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
 fi
 
 if test -d "$CCHART" && [ "${#BUILDCMD}" -gt 0 ]; then # Only CCHART=directory apply the --build
     CMD="helm $NAMESPACEARG dependency update '$CCHART' $VERSIONARG"
-    echo -e "# Running command [$CMD]"
-    bash -c "$CMD"
-    echo "---"
+    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
+    echo "# ---" >> ${OUTPUTFILE:-/dev/stdout}
     CMD="helm $NAMESPACEARG dependency build '$CCHART' $VERSIONARG"
-    echo -e "# Running command [$CMD]"
-    bash -c "$CMD"
-    echo "---"
+    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
+    echo "# ---" >> ${OUTPUTFILE:-/dev/stdout}
 fi
 
 COMMANDS2INSTALL=" install upgrade "
@@ -479,15 +496,15 @@ COMMANDS2ASK4CONFIRMATION=" $COMMANDS2INSTALL idebug delete debug "
 if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
     if [[ ${COMMANDSINVOLVEDINHELPCOMMAERROR[@]} =~ " $COMMAND " ]] && [[ "$FVALUES" == *","* ]]; then
         MSG="WARNING: commas are treated as special chars; so error arise when used on chart paths. Do you want to continue using chart path [$CCHART]"
-        echo $MSG | egrep --color=auto  "," > /dev/tty
+        echo $MSG >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "," #> /dev/tty
             read -p "sure [Y/n]? " -n 1 -r 
-            echo  > /dev/tty  # (optional) move to a new line
+            echo   >> ${OUTPUTFILE:-/dev/stdout} # > /dev/tty  # (optional) move to a new line
         if [[ ! $REPLY =~ ^[1Yy]$ ]]; then
-            echo "NOTE: Try renaming chart path to remove the commas [$CCHART]"
+            echo "NOTE: Try renaming chart path to remove the commas [$CCHART]" >> ${OUTPUTFILE:-/dev/stdout}
             if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
         fi
     fi
-    echo '---'
+    echo '# ---' >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$COMMAND" == "idebug" ]; then
         COMMAND="install --debug"
         CMD="helm $NAMESPACEARG $COMMAND -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG 2>&1"
@@ -507,27 +524,26 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
         if [ "$VERBOSE" = true ]; then
             echo -e "# WARNING: [$COMMAND] does not connect to the k8s API, so functions like 'lookup' and others will not retrieve valid info.\n \
             # This could lead to some misleading errors such as resources not found in the running k8s cluster\n\
-            # USE idebug (Install debug) to view the real k8s generated artifacts although this command will install the chart if correct"
+            # USE idebug (Install debug) to view the real k8s generated artifacts although this command will install the chart if correct" >> ${OUTPUTFILE:-/dev/stdout}
         fi
     fi
     if [ "$VERBOSE" = true ]; then
-        echo "# Running CMD=[$CMD]"
+        echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     fi
     if [ "$ASK" = true ]; then
-        MSG="QUESTION: Do you want to run this command on chart [$CCHART] $NAMESPACEDESC using value file [$FVALUES]?"
+        MSG="# QUESTION: Do you want to run this command on chart [$CCHART] $NAMESPACEDESC using value file [$FVALUES]?"
         if [ "$USECCLUE" = true ]; then
-            echo $MSG | egrep --color=auto  "$CCLUEORIG" > /dev/tty
+            echo $MSG  >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCLUEORIG" # > /dev/tty
         else
-            echo $MSG > /dev/tty
+            echo $MSG  >> ${OUTPUTFILE:-/dev/stdout} #> /dev/tty
         fi
         read -p "sure [Y/n]? " -n 1 -r 
-        echo  > /dev/tty  # (optional) move to a new line
+        echo   >> ${OUTPUTFILE:-/dev/stdout} #> /dev/tty  # (optional) move to a new line
     else
         REPLY="y"
     fi
     if [[ $REPLY =~ ^[1Yy]$ ]]; then
-    eval $CMD
-    echo "---"
+    eval $CMD >> ${OUTPUTFILE:-/dev/stdout}
     else
         if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
     fi
