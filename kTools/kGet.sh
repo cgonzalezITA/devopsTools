@@ -40,6 +40,8 @@ OUTPUTFORMATS=" yaml json wide "
 OUTPUTFORMAT=""
 # \t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
+# \t[-w|--watch]: Watch the command using the watch tool: watch <cmd> \n
+WATCH=false
 # [-ans | --all-namespaces) 
 
 #############################
@@ -62,6 +64,7 @@ function help() {
             \t-v: Do not show verbose info                                                                             \n
             \t-o <outputFormat>: One of [$OUTPUTFORMATS] \n
             \t-fv: Force component's name match the given component's clue (using this, the clue is not a clue, but the name). It makes sense when using -o yaml|json option \n
+            \t[-w|--watch]: Watch the command using the watch tool: watch <cmd> \n
             \t[<component clue>]: Clue to identify the artifact file name|all                                          \n
             \t[<k8s artifact>]: k8s Artifact to show info about. Values: pod*, all, svc, ...                           \n
             \n[<component clue>] and [<k8s artifact>] can in some context be swapped to match existing artifacts"
@@ -82,6 +85,8 @@ while true; do
             echo -e $(help);
             if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
             break ;;
+        -w | --watch )
+            WATCH=true; shift ;;
         -y | --yes ) 
             ASK=false; shift ;;
         -o | --output)
@@ -219,11 +224,15 @@ else
     PATTERN4COMMAND=""
 fi
 
+
 if ! test "${#OUTPUTFORMAT}" -eq 0; then
     # For get commands with -o an k8s artifact has to be provided
     CMD="kubectl $COMMAND $K8SARTIFACT $PATTERN4COMMAND $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
 else
     CMD="kubectl $COMMAND $K8SARTIFACT  $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
+fi
+if [ "$WATCH" = true ]; then
+    CMD="watch $CMD"
 fi
 
 if [ "$VERBOSE" = true ]; then
@@ -238,6 +247,7 @@ if [ "$VERBOSE" = true ]; then
         echo "# OUTPUT=[$OUTPUTFORMAT]"
     fi
     echo "VERBOSE=[$ASK]" 
+    echo "WATCH=[$WATCH]"
     echo "#   Running command [$CMD]"
 fi
 
@@ -258,5 +268,6 @@ if  [ "$K8SARTIFACT" == "all" ]; then
 else
     [ ${#CCLUE} -gt 0 ] && CLUEDESC="'*$CCLUE*' " || CLUEDESC="";
     echo -e "---\n# Showing $K8SARTIFACT $CLUEDESC$NAMESPACEDESC" | egrep --color=auto  $K8SARTIFACT
+    [ "$WATCH" = true ] && sleep 2;
     eval $CMD
 fi
