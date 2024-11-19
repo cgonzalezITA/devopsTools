@@ -426,7 +426,7 @@ if [ "$VERBOSE" = true ]; then
     echo -e "#  >OUTPUTFILE=[$OUTPUTFILE]"  >> ${OUTPUTFILE:-/dev/stdout}
 fi
 
-if ! test -f $FVALUES; then 
+if ! test -f "$FVALUES"; then 
     echo -e $(help "ERROR: Values file [$FVALUES] must exist. Use -f option to give a clue of its name");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 fi
@@ -481,13 +481,22 @@ fi
 
 if test -d "$CCHART" && [ "${#BUILDCMD}" -gt 0 ]; then # Only CCHART=directory apply the --build
     CMD="helm $NAMESPACEARG dependency update '$CCHART' $VERSIONARG"
-    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
-    bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
-    echo "# ---" >> ${OUTPUTFILE:-/dev/stdout}
-    CMD="helm $NAMESPACEARG dependency build '$CCHART' $VERSIONARG"
-    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
-    bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
-    echo "# ---" >> ${OUTPUTFILE:-/dev/stdout}
+    CMD2="helm $NAMESPACEARG dependency build '$CCHART' $VERSIONARG"
+    [ "$VERBOSE" = true ] && echo -e "# Running command 1st [$CMD2]" >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] && echo -e "# Running command 2nd [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    if [ "$ASK" = true ]; then
+        MSG="# QUESTION: Do you want to run these two commands on to update the helm chart dependencies?"
+        read -p "$MSG [Y/n]? " -n 1 -r 
+        [ "$VERBOSE" = true ] && echo   >> ${OUTPUTFILE:-/dev/stdout} #> /dev/tty  # (optional) move to a new line
+    else
+        REPLY="y"
+    fi
+    if [[ $REPLY =~ ^[1Yy]$ ]]; then
+        bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
+        [ "$VERBOSE" = true ] && echo "# ---" >> ${OUTPUTFILE:-/dev/stdout}
+        bash -c "$CMD2" >> ${OUTPUTFILE:-/dev/stdout}
+        [ "$VERBOSE" = true ] && echo "# ---" >> ${OUTPUTFILE:-/dev/stdout}
+    fi
 fi
 
 COMMANDS2INSTALL=" install upgrade "
@@ -531,7 +540,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
         echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     fi
     if [ "$ASK" = true ]; then
-        MSG="# QUESTION: Do you want to run this command on chart [$CCHART] $NAMESPACEDESC using value file [$FVALUES]?"
+        MSG="# QUESTION: Do you want to run this previous command to [$COMMAND] chart [$CCHART] $NAMESPACEDESC?"
         if [ "$USECCLUE" = true ]; then
             echo $MSG  >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCLUEORIG" # > /dev/tty
         else
@@ -543,7 +552,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
         REPLY="y"
     fi
     if [[ $REPLY =~ ^[1Yy]$ ]]; then
-    eval $CMD >> ${OUTPUTFILE:-/dev/stdout}
+        eval $CMD >> ${OUTPUTFILE:-/dev/stdout}
     else
         if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
     fi
