@@ -424,6 +424,7 @@ if [ "$VERBOSE" = true ]; then
     fi
     echo -e "#  >ASK=[$ASK]"  >> ${OUTPUTFILE:-/dev/stdout}
     echo -e "#  >OUTPUTFILE=[$OUTPUTFILE]"  >> ${OUTPUTFILE:-/dev/stdout}
+    echo "#  ---"
 fi
 
 if ! test -f "$FVALUES"; then 
@@ -439,14 +440,14 @@ if [ "$FCONFIG" == "all" ]; then
     X=""
     for filename in $(/bin/bash -c "$CMDF"); do
         CMDA="$SCRIPTNAME $BUILDCMD -v -fnv $NAMESPACEARG -hf \"$FOLDER_HELMBASE\" -fv \"$filename\" $COMMAND"
-        echo -e "# ---\n# INFO ($IDX/$NFILES): Executing command [$CMDA]" >> ${OUTPUTFILE:-/dev/stdout}
+        [ "$VERBOSE" = true ] && echo -e "# ---\n# INFO ($IDX/$NFILES): Executing command [$CMDA]" >> ${OUTPUTFILE:-/dev/stdout}
         IDX=$(($IDX+1))
         # { err=$(cmd 2>&1 >&3 3>&-); } 3>&1
         X1=$($CMDA 2>&1)
-        echo "$X1" >> ${OUTPUTFILE:-/dev/stdout}
+        [ "$VERBOSE" = true ] && echo "$X1" >> ${OUTPUTFILE:-/dev/stdout}
         X="$X\n\t# ---From file $filename---\n$X1"
     done
-    echo -e "# ---\nSummary:\n$X" >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] &&echo -e "# ---\nSummary:\n$X" >> ${OUTPUTFILE:-/dev/stdout}
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 fi
 # echo -e "# INFO: Executing helm command [$COMMAND] using values from file [$FVALUES] for component [$CNAME] and chart [$CCHART] $VERSIONDESC $NAMESPACEDESC"
@@ -455,9 +456,7 @@ fi
 
 if [[ $COMMANDSTEST =~ " $COMMAND " ]]; then
     CMD="helm $NAMESPACEARG install -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG --create-namespace"
-    if [ "$VERBOSE" = true ]; then
-        echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
-    fi
+    [ "$VERBOSE" = true ] && echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     if [ "$ASK" == true ]; then ASKFLAG=""; else ASKFLAG="-y"; fi
@@ -466,15 +465,15 @@ elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     else
         FVALUESCMD=""
     fi
-    echo " INFO: 1. Deleting helm [$CNAME]:[$ASKFLAG]" >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] && echo -e "# INFO: 1. Deleting helm [$CNAME]" >> ${OUTPUTFILE:-/dev/stdout}
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG --verbose -fv \"$FCONFIG\" $FVALUESCMD delete"
-    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     eval "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
-    echo " INFO: 2. Installing helm [$CNAME]:" >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] && echo -e "# ---\n# INFO: 2. Installing helm [$CNAME]:" >> ${OUTPUTFILE:-/dev/stdout}
     sleep 1
 
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
-    echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
 fi
@@ -505,7 +504,7 @@ COMMANDS2ASK4CONFIRMATION=" $COMMANDS2INSTALL idebug delete debug "
 if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
     if [[ ${COMMANDSINVOLVEDINHELPCOMMAERROR[@]} =~ " $COMMAND " ]] && [[ "$FVALUES" == *","* ]]; then
         MSG="WARNING: commas are treated as special chars; so error arise when used on chart paths. Do you want to continue using chart path [$CCHART]"
-        echo $MSG >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "," #> /dev/tty
+        [ "$VERBOSE" = true ] && echo $MSG >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "," #> /dev/tty
             read -p "sure [Y/n]? " -n 1 -r 
             echo   >> ${OUTPUTFILE:-/dev/stdout} # > /dev/tty  # (optional) move to a new line
         if [[ ! $REPLY =~ ^[1Yy]$ ]]; then
@@ -513,7 +512,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
             if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
         fi
     fi
-    echo '# ---' >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] && echo '# ---' >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$COMMAND" == "idebug" ]; then
         COMMAND="install --debug"
         CMD="helm $NAMESPACEARG $COMMAND -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG 2>&1"
@@ -536,9 +535,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
             # USE idebug (Install debug) to view the real k8s generated artifacts although this command will install the chart if correct" >> ${OUTPUTFILE:-/dev/stdout}
         fi
     fi
-    if [ "$VERBOSE" = true ]; then
-        echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
-    fi
+    [ "$VERBOSE" = true ] && echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$ASK" = true ]; then
         MSG="# QUESTION: Do you want to run this previous command to [$COMMAND] chart [$CCHART] $NAMESPACEDESC?"
         if [ "$USECCLUE" = true ]; then
