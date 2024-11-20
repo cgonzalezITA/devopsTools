@@ -424,7 +424,7 @@ if [ "$VERBOSE" = true ]; then
     fi
     echo -e "#  >ASK=[$ASK]"  >> ${OUTPUTFILE:-/dev/stdout}
     echo -e "#  >OUTPUTFILE=[$OUTPUTFILE]"  >> ${OUTPUTFILE:-/dev/stdout}
-    echo "#  ---"
+    echo "#  ---"  >> ${OUTPUTFILE:-/dev/stdout}
 fi
 
 if ! test -f "$FVALUES"; then 
@@ -484,7 +484,8 @@ if test -d "$CCHART" && [ "${#BUILDCMD}" -gt 0 ]; then # Only CCHART=directory a
     [ "$VERBOSE" = true ] && echo -e "# Running command 1st [$CMD2]" >> ${OUTPUTFILE:-/dev/stdout}
     [ "$VERBOSE" = true ] && echo -e "# Running command 2nd [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$ASK" = true ]; then
-        MSG="# QUESTION: Do you want to run these two commands on to update the helm chart dependencies?"
+        MSG=$(echo "# QUESTION: Do you want to run these two commands on to update the helm chart dependencies?" \
+            | sed "s/\(to update\)/\x1b[31m\1\x1b[0m/g")
         read -p "$MSG [Y/n]? " -n 1 -r 
         [ "$VERBOSE" = true ] && echo   >> ${OUTPUTFILE:-/dev/stdout} #> /dev/tty  # (optional) move to a new line
     else
@@ -512,7 +513,6 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
             if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
         fi
     fi
-    [ "$VERBOSE" = true ] && echo '# ---' >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$COMMAND" == "idebug" ]; then
         COMMAND="install --debug"
         CMD="helm $NAMESPACEARG $COMMAND -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG 2>&1"
@@ -537,7 +537,8 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
     fi
     [ "$VERBOSE" = true ] && echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$ASK" = true ]; then
-        MSG="# QUESTION: Do you want to run this previous command to [$COMMAND] chart [$CCHART] $NAMESPACEDESC?"
+        MSG=$(echo "# QUESTION: Do you want to run this previous command to [$COMMAND] chart [$CCHART] $NAMESPACEDESC?" \
+                    | sed "s/\($COMMAND\)/\x1b[31m\1\x1b[0m/g")
         if [ "$USECCLUE" = true ]; then
             echo $MSG  >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCLUEORIG" # > /dev/tty
         else

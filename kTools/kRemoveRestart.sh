@@ -195,7 +195,8 @@ if [ "$VERBOSE" = true ]; then
     echo "            COMMAND=[$COMMAND]"
     echo -e "  Matching [$K8SARTIFACT]:\n$( kubectl get $NAMESPACEARG $K8SARTIFACT $CNAME)"
 fi
-MSG="QUESTION: [$COMMAND] [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC?"
+MSG=$(echo "QUESTION: [$COMMAND] [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC?" \
+                    | sed "s/\($COMMAND\)/\x1b[31m\1\x1b[0m/g")
 CMD="kubectl $COMMAND $NAMESPACEARG $K8SARTIFACT $CNAME"
 if [ "$VERBOSE" = true ]; then
     echo "  Running command [${CMD}]"

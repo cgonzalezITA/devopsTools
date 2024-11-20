@@ -111,7 +111,8 @@ for dir in . */; do
         fi
         if [ "$ASK" = true ]; then
             echo -e ">Running command [$CMD]" 
-            MSG="QUESTION: Do you want to run the command to push changes of git [$GITNAME] at branch $branch [$BRANCHNAME]?"
+            MSG=$(echo "QUESTION: Do you want to run the command to push changes of git [$GITNAME] at branch $branch [$BRANCHNAME]?" \
+            | sed "s/\(to push changes\)/\x1b[31m\1\x1b[0m/g")
             read -p "$MSG [Y/n]? " -n 1 -r 
                 echo    # (optional) move to a new line
         else
@@ -129,7 +130,8 @@ for dir in . */; do
             CMD="git push"
             if [ "$ASK" = true ]; then
                 echo -e ">Running command [$CMD]" 
-                MSG="QUESTION: Do you want to run the command to push changes of git [$GITNAME] at branch $branch [$BRANCHNAME]?"
+                MSG=$(echo "QUESTION: Do you want to run the command to push changes of git [$GITNAME] at branch $branch [$BRANCHNAME]?"\
+                    | sed "s/\(to push\)/\x1b[31m\1\x1b[0m/g")
                 read -p "$MSG [Y/n]? " -n 1 -r 
                     echo    # (optional) move to a new line
             else
