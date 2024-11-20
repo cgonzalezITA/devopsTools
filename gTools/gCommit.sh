@@ -111,10 +111,12 @@ if test "${#TAG}" -gt 0; then
     CMD="$CMD; git tag $TAG -m \"$TAGC\""
 fi
 if [ "$VERBOSE" = true ]; then
-    echo "  >Running command [$CMD]"
     echo "---"
+    echo "  >Running command [$CMD]"
 fi
-read -p "  Are you sure to run the command [Y/n]? " -n 1 -r
+MSG=$(echo "QUESTION: Are you sure to run the previous command to commit the git changes [Y/n]?" \
+            | sed "s/\(to commit the git changes\)/\x1b[31m\1\x1b[0m/g")
+read -p "$MSG" -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
