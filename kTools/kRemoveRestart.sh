@@ -132,9 +132,8 @@ elif [[ ! ${ARTIFACTSFULLNAMES[@]} =~ " $K8SARTIFACT " ]];  then
     CCLUE=$K8SARTIFACT
     K8SARTIFACT=$TMP
     if [[ ! ${ARTIFACTSFULLNAMES[@]} =~ " $K8SARTIFACT " ]];  then
-        TMP=$K8SARTIFACT
-        K8SARTIFACT=$CCLUE
-        CCLUE=$TMP
+        echo -e $(help "ERROR: No k8s artifact with name [$CCLUE] nor [$K8SARTIFACT]. Use -a <K8SARTIFACT> to force the use of the intended artifact")
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
     fi
 fi
 

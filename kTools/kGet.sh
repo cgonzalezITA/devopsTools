@@ -214,16 +214,17 @@ elif [[ "$OUTPUTFORMAT" =~ ^(-o yaml|-o json)$ ]]; then
     else    
         PATTERNDESC=$getArtifact_result;
         PATTERN4COMMAND=$PATTERNDESC
-        GREPCMD="| grep $CCLUE | egrep --color=auto  '$CCLUE|$'"
+        GREPCMD="| grep $CCLUE"
+        [ "$WATCH" = false ] && GREPCMD="$GREPCMD | egrep --color=auto  '$CCLUE|$'"
         GREPK8SCMD=""
     fi    
 else
-    GREPCMD="| grep $CCLUE | egrep --color=auto  '$CCLUE|$'"
+    GREPCMD="| grep $CCLUE"
+    [ "$WATCH" = false ] && GREPCMD="$GREPCMD | egrep --color=auto  '$CCLUE|$'"
     GREPK8SCMD=$GREPCMD
     PATTERNDESC="[*$CCLUE*]"
     PATTERN4COMMAND=""
 fi
-
 
 if ! test "${#OUTPUTFORMAT}" -eq 0; then
     # For get commands with -o an k8s artifact has to be provided
@@ -232,7 +233,7 @@ else
     CMD="kubectl $COMMAND $K8SARTIFACT  $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
 fi
 if [ "$WATCH" = true ]; then
-    CMD="watch $CMD"
+    CMD="watch \"$CMD"\"
 fi
 
 if [ "$VERBOSE" = true ]; then
