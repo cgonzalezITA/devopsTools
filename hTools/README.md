@@ -87,6 +87,13 @@ helm repo list
 helm repo update <repo>
   # helm repo update bitnami
   
+# List all the charts in a repo
+# helm search repo <repoName> [<chartNameClue>]
+  # Examples:
+  # helm search repo fiware api
+    # NAME                    CHART VERSION   APP VERSION     DESCRIPTION                                     
+    # fiware/tm-forum-api     0.9.4           0.13.2          A Helm chart for running the FIWARE TMForum-APIs
+
 # Search all the versions for a repo/chart
 helm search repo <repoName>/<chartName> --versions  
   # Examples:
