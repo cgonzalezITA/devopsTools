@@ -16,9 +16,13 @@ This project contains a set of tools based on clues to ease the life of people w
   - [License](#license)
 
 ## Deployment as a git project
-This project can be deployed as an issolated git project:  
+This project is located at url **https://github.com/cgonzalezITA/devopsTools** can be deployed as an issolated git project:  
 ```shell
-$ git clone [-b <branchName>] --recurse-submodules git@github.com:cgonzalezITA/devopsTools.git  [<destinationFolder>]
+DEVTOOLS_GH_HTTPS="https://github.com/cgonzalezITA/devopsTools.git"
+git clone [-b <branchName>] $DEVTOOLS_GH_HTTPS [<destinationFolder>]
+  # OR
+DEVTOOLS_GH_GIT="git@github.com:cgonzalezITA/devopsTools.git"
+git clone [-b <branchName>] $DEVTOOLS_GH_HTTPS [<destinationFolder>]
 ```
 
 ## Deployment as a submodule
