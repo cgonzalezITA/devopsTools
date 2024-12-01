@@ -19,12 +19,13 @@ BASEDIR=$(dirname "$SCRIPTNAME")
 VERBOSE=true
 VERBOSECMD=""
 # \t<command>: Command to be executed inside the pod"
-COMMAND=up
+COMMAND=""
 # \t-f <folder with helm config>: Folder where the config file must be located (def value: ./HValues    \n
 FOLDER_VALUES=./
 # \t-df <dockerCompose file>: def. docker-compose.yml                                                   \n
 USEDFCLUE=true
-DOCKERCOMPOSE_FILE=docker-compose.yml
+# \t[-ff | --forceFolder]: Restricts search of the docker-compose file just on the -f folder. def. false \n
+SEARCH_SUBFOLDERS=false
 # \t-b: Build the docker compose images                                                                 \n
 BUILDCMD=""
 PRECOMMAND=""
@@ -33,6 +34,8 @@ DETACHCMD="--detach"
 # \t<Service to use>: def. all. Name of the Service to perform the command on.                          \n
 SERVICENAME=""
 SERVICEDESC=""
+# \t[-y|--yes]: No confirmation questions are asked \n
+ASK=true
 
 EXTRACMDS=""
 COMMANDSAVAILABLE=" up start install u down stop del d restart r debug info "
@@ -52,9 +55,10 @@ function help() {
         HELP="${1}\n"
     fi
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] [<command:def: up>][<service2Use>]                                            \n 
-            \t-h: Show help info                                                                                                  \n
-            \t-v: Do not show verbose info                                                                                        \n
+            \t-h: Show help info; -v: Do not show verbose info \n
+            \t[-y|--yes]: No confirmation questions are asked \n
             \t-f <folder with docker-compose file>:                                                                               \n
+            \t[-ff | --forceFolder]: Restricts search of the docker-compose file just on the -f folder. def. false \n
             \t-df <dockerCompose file>: def. docker-compose.yml                                                                   \n
             \t-dc <dockerCompose command>: docker-compose*, docker compose, ...                                                   \n
             \t                    export DOCKERCOMPOSE_CMD=<DockerComposeCommnad> to avoid having to repeat it on this commands   \n
@@ -75,6 +79,7 @@ function help() {
 
 # getopts arguments
 while true; do
+    [[ "$#" -eq 0 ]] && break;
     case "$1" in
         -v | --verbose ) 
             VERBOSECMD=$1;
@@ -82,15 +87,24 @@ while true; do
         -h | --help ) 
             echo -e $(help);
             # echo "help rc=$?"
-            if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             break ;;
+        -y|--yes )
+            # \t[-y|--yes]: No confirmation questions are asked \n
+            ASK=true
+            shift ;;
         -f ) 
             FOLDER_VALUES=$2
+            SEARCH_SUBFOLDERS=false
             if ! test -d $FOLDER_VALUES; then 
                 echo -e $(help "ERROR: Folder [$FOLDER_VALUES] must exist");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             fi
             shift ; shift ;;
+        -ff | --forceFolder)
+            # \t[-ff | --forceFolder]: Restricts search of the docker-compose file just on the -f folder. def. false \n
+            SEARCH_SUBFOLDERS=true
+            shift;;
         -df ) 
             USEDFCLUE=false
             DOCKERCOMPOSE_FILE=$2
@@ -113,31 +127,26 @@ while true; do
         -d | --detach ) 
             DETACHCMD=""; shift ;;            
         * ) 
-            if [[ $1 == -* ]]; then
+            if [[ $1 == -* && $1 != --* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            fi
-            break ;;
+            elif test "${#COMMAND}" -eq 0; then
+                COMMAND=$1
+                shift;
+            elif test "${#SERVICENAME}" -eq 0; then
+                SERVICENAME=$1;
+                shift;
+            fi ;;
     esac
 done
 
-
-PROVIDEDPARAMS=$#
-# positional arguments
-if test "$#" -ge 1; then
-    COMMAND=$1
-    shift;
-fi
-if test "$#" -ge 1; then
-    SERVICENAME=$1
-    shift;
-fi
+[[ "${#COMMAND}" -eq 0 ]] && COMMAND="up";
 
 if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]]
 then
     # echo "value not found: $PROVIDEDPARAMS"
 # Swapping is done between COMMAND AND SERVICENAME
-    if test "$PROVIDEDPARAMS" -le 1; then
+    if [[ "$PROVIDEDPARAMS" -le 1 ]]; then
         SERVICENAME=$COMMAND
         COMMAND=up
     else
@@ -150,7 +159,7 @@ fi
 if [ "$USEDFCLUE" = true ]; then
     shopt -s expand_aliases
     . ~/.bash_aliases
-    getFileResult=$(_fGetFile "$FOLDER_VALUES" true "docker-compose.y*ml" "docker-compose" false);
+    getFileResult=$(_fGetFile "$FOLDER_VALUES" true "docker-compose.y*ml" "docker-compose" false $SEARCH_SUBFOLDERS);
     RC=$?; 
     if test "$RC" -ne 0; then 
         echo -e $(help "ERROR: $getFileResult");
@@ -161,8 +170,8 @@ if [ "$USEDFCLUE" = true ]; then
     else    
         DOCKERCOMPOSE_FILE=$getFileResult;
     fi
-    if ! test -f $DOCKERCOMPOSE_FILE; then 
-        echo -e $(help "ERROR: docker compose file [$DOCKERCOMPOSE_FILE] must exist");
+    if ! test -f "$DOCKERCOMPOSE_FILE"; then 
+        echo -e $(help "ERROR: docker compose file $DOCKERCOMPOSE_FILE must exist");
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
 fi
@@ -171,7 +180,7 @@ if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]]
 then
 #    echo "value not found: $PROVIDEDPARAMS"
 # Swapping is done between COMMAND AND SERVICENAME
-    if test "$PROVIDEDPARAMS" -le 1; then
+    if [[ "$PROVIDEDPARAMS" -le 1 ]]; then
         SERVICENAME=$COMMAND
         COMMAND=up
     else
@@ -187,30 +196,40 @@ fi
 # Code
 # echo "DOCKERCOMPOSE_CMD=$DOCKERCOMPOSE_CMD"
 if [[ -z "${DOCKERCOMPOSE_CMD}" ]]; then
-    # echo "DOCKERCOMPOSE_CMD does not exist"
-    DOCKERCOMPOSE_CMD="docker-compose"
+    # Sets the proper docker compose command
+    DOCKERCOMPOSE_CMD='docker-compose'
+    DC_CMD_VERSION=$($DOCKERCOMPOSE_CMD --version 2> /dev/null)
+    RC=$?
+    if [[ "$RC" -ne 0 ]]; then
+        DOCKERCOMPOSE_CMD="docker compose";
+        DC_CMD_VERSION=$($DOCKERCOMPOSE_CMD version 2> /dev/null) 
+        RC=$?
+        [[ "$RC" -ne 0 ]] \
+            && echo "WARNING: No docker compose file has been detected. Use -dc <DC_CMD> to set the valid one. Trying now with [$DOCKERCOMPOSE_CMD]";
+    fi
 fi
 
-
-
-if test "${#PROJECTNAME}" -gt 0; then 
-    PROJECTNAME="-p $PROJECTNAME"
+if [[ "${#DOCKERCOMPOSE_FILE}" -gt 0 ]]; then
+    DC_FILEDESC=$DOCKERCOMPOSE_FILE;
+    if [ "${DOCKERCOMPOSE_FILE:0:1}" == "/" ]; then
+        DOCKERCOMPOSE_FILE="$DOCKERCOMPOSE_FILE";
+    else
+        DOCKERCOMPOSE_FILE="$(pwd)/$DOCKERCOMPOSE_FILE";
+    fi
+    DOCKERCOMPOSE_FILE=$(echo "$DOCKERCOMPOSE_FILE" | sed 's/ /\\ /g')
 fi
-if test "${#ENVFILE}" -gt 0; then 
-    ENVFILE="--env-file $ENVFILE"
-fi
-if test "${#PROJECTDIR}" -gt 0; then 
-    PROJECTDIR="--project-directory $PROJECTDIR"
-fi
+[[ "${#PROJECTNAME}" -gt 0 ]] && PROJECTNAME="-p $PROJECTNAME";
+[[ "${#ENVFILE}" -gt 0 ]] && ENVFILE="--env-file \"$ENVFILE\"";
+[[ "${#PROJECTDIR}" -gt 0 ]] && PROJECTDIR="--project-directory \"$PROJECTDIR\"";
+[[ "$COMMAND" =~ ^(debug|info)$ ]] && COMMAND="info";
 
 CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $PROJECTDIR config --services"
-# echo "  Running command [${CMD}]"
-SERVICES=$($CMD)
+SERVICES=$(eval $CMD)
 RC=$?; 
 if test "$RC" -ne 0; then 
-    echo "---"
-    echo -e $(help "ERROR: Docker compose services retrieval returned error $RC running command [$CMD]");
-    if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+    [ "$VERBOSE" = true ] && echo -e "---\nRunning command1 [${CMD}]"
+    echo -e $(help "ERROR: Docker compose services retrieval returned error $RC")
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 SERVICES=" $(echo $SERVICES | sed 's/\n//g') "
 
@@ -225,9 +244,10 @@ elif [[ "$COMMAND" =~ ^(down|stop|del|d)$ ]]; then
 fi
 
 
-if [ "$VERBOSE" = true ]; then
-    echo "- DOCKERCOMPOSE_CMD=[$DOCKERCOMPOSE_CMD] (Set DOCKERCOMPOSE_CMD env var to use other commands by default)"
-    echo "- DOCKERCOMPOSE_FILE=[$DOCKERCOMPOSE_FILE]"
+if [ "$COMMAND" == "info" ] || [ "$VERBOSE" == true ]; then
+    echo "- ASK=[$ASK]"
+    echo "- DOCKERCOMPOSE_CMD=[$DOCKERCOMPOSE_CMD ($DC_CMD_VERSION)]"
+    echo "- DOCKERCOMPOSE_FILE=[$DC_FILEDESC]"
     echo "- PROJECTDIR=[$PROJECTDIR]"
     echo "- PROJECTNAME=[$PROJECTNAME]"
     echo "- ENVFILE=[$ENVFILE]"
@@ -241,15 +261,15 @@ fi
 
 if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     COMMAND="restart";
-    echo -e "---\n# INFO: Restarting docker compose $DOCKERCOMPOSE_FILE $SERVICEDESC..."
+    [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
     CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME down $SERVICENAME"
-    echo "  Running command 1/2 [${CMD}]"
+    [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";w
     bash -c "$CMD"
     RC=$?; 
     if test "$RC" -ne 0; then 
-        echo "---"
+        [ "$VERBOSE" = true ] && echo "---"
         echo -e $(help "ERROR: Stopping service $SERVICENAME");
-        if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
     sleep 1
     # Chapuza para invertir el flag detach
@@ -259,10 +279,10 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
         DETACHCMD=""
     fi
     CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME up $SERVICENAME"
-    echo "  Running command 2/2 [${CMD}]"
-    echo "---"
+    [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
+    [ "$VERBOSE" = true ] && echo "---"
     bash -c "$CMD"
-    if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
 
@@ -275,22 +295,40 @@ if test "${#SERVICENAME}" -gt 0; then
 fi
 
 if [[ "$COMMAND" =~ ^(debug|info)$ ]]; then
-    if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 elif [ "$COMMAND" == "up" ]; then
     EXTRACMDS="$DETACHCMD $BUILDCMD"
 elif [ "$COMMAND" == "rm -f " ]; then
     CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME stop $SERVICENAME"
-    echo INFO: EXECUTING [$CMD] $SERVICEDESC
-    /bin/bash -c "$CMD"
-    RC=$?; 
-    if test "$RC" -ne 0; then 
-        echo "---"
-        echo -e $(help "ERROR: Stopping service $SERVICENAME");
-        if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+    [ "$VERBOSE" = true ] && echo "Running command [$CMD $SERVICEDESC]"
+    if [ "$ASK" = true ]; then
+        MSG="QUESTION: Do you want to run previous command?"
+        read -p "$MSG [Y/n]? " -n 1 -r 
+        [ "$VERBOSE" = true ] && echo    # (optional) move to a new line
+    else
+        REPLY="y"
+    fi
+    if [[ $REPLY =~ ^[1Yy]$ ]]; then
+        /bin/bash -c "$CMD"
+        RC=$?; 
+        if test "$RC" -ne 0; then 
+            [ "$VERBOSE" = true ] && echo "---"
+            echo -e $(help "ERROR: Stopping service $SERVICENAME");
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+        fi
     fi
 fi
 
 CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $COMMAND $EXTRACMDS $SERVICENAME"
-echo "---"
-echo INFO: EXECUTING [$CMD] $SERVICEDESC
-/bin/bash -c "$CMD"
+[ "$VERBOSE" = true ] && echo -e "---\nRunning CMD=$CMD $SERVICEDESC"
+if [ "$ASK" = true ]; then
+    MSG="QUESTION: Do you want to run the previous command?"
+    read -p "$MSG [Y/n]? " -n 1 -r 
+        echo    # (optional) move to a new line
+else
+    REPLY="y"
+fi
+
+if [[ $REPLY =~ ^[1Yy]$ ]]; then
+    /bin/bash -c "$CMD";
+fi
