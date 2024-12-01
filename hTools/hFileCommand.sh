@@ -475,7 +475,7 @@ elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
     [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
-    if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
 if test -d "$CCHART" && [ "${#BUILDCMD}" -gt 0 ]; then # Only CCHART=directory apply the --build
@@ -510,7 +510,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
             echo   >> ${OUTPUTFILE:-/dev/stdout} # > /dev/tty  # (optional) move to a new line
         if [[ ! $REPLY =~ ^[1Yy]$ ]]; then
             echo "NOTE: Try renaming chart path to remove the commas [$CCHART]" >> ${OUTPUTFILE:-/dev/stdout}
-            if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
         fi
     fi
     if [ "$COMMAND" == "idebug" ]; then
@@ -552,6 +552,6 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
     if [[ $REPLY =~ ^[1Yy]$ ]]; then
         eval $CMD >> ${OUTPUTFILE:-/dev/stdout}
     else
-        if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
 fi

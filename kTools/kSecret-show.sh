@@ -69,7 +69,7 @@ while true; do
             ASK=false; shift ;;
         -h | --help ) 
             echo -e $(help);
-            if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             return 0;
             break ;;
         # -f ) 

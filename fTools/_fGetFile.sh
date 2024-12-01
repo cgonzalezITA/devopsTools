@@ -15,13 +15,13 @@ if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"
 BASEDIR=$(dirname "$SCRIPTNAME")
 if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"; fi
 
-    # echo "  Hello getFile ("$#") ($getFile_result) $1 $2 $3 $4 $5 $6" > /dev/tty
+    # echo "  Hello getFile ("$#") ($getFile_result) $1 $2 $3 $4 $5 $6 $7" > /dev/tty
     FCLUEISDIR=false;
     ask=false;
     FILEINFOLDER=""
     if test "$#" -lt 4; then
         # export getFile_result=
-        echo "Error getFiles: Syntax getFile BASEDIR USEFCLUE FCLUE FCLUEBASE [ask(false) FCLUEISDIR(false) FILEINFOLDER("") ACTIONDESC]"
+        echo "Error getFiles: Syntax getFile BASEDIR USEFCLUE FCLUE FCLUEBASE [ask(false) FCLUEISDIR(false) FILEINFOLDER("") ACTIONDESC SEARCHINSUBFOLDERS]"
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi;
     BASEDIR=$1; shift;
@@ -31,21 +31,11 @@ if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"
     # FCLUE=$(echo $FCLUE | sed 's/ /\\ /g')
     FCLUEBASE=$1; shift;
 
-    if test "$#" -ge 1; then
-        ask=$1; shift;
-    fi
-    if test "$#" -ge 1; then
-        FCLUEISDIR=$1; shift;
-    fi
-    if test "$#" -ge 1; then
-        FILEINFOLDER=$1; shift;
-        # FILEINFOLDER=$(echo $FILEINFOLDER | sed 's/ /\\ /g')
-    fi
-    if test "$#" -ge 1; then
-        ACTIONDESC="$1"; shift;
-    else
-        ACTIONDESC="";
-    fi
+    [[ "$#" -ge 1 ]] && ask=$1; shift;
+    [[ "$#" -ge 1 ]] && FCLUEISDIR=$1; shift;
+    [[ "$#" -ge 1 ]] && FILEINFOLDER=$1; shift;
+    [[ "$#" -ge 1 ]] && { ACTIONDESC="$1"; shift; } || ACTIONDESC=""; 
+    [[ "$#" -ge 1 ]] && { SEARCH_SUBFOLDER=false; MAXDEPTH=1; shift; } || MAXDEPTH=10; 
     # echo "BASEDIR=$BASEDIR"           > /dev/tty;
     # echo "USEFCLUE=$USEFCLUE"         > /dev/tty;
     # echo "FCLUE=$FCLUE"               > /dev/tty;
@@ -53,6 +43,8 @@ if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"
     # echo "FCLUEISDIR=$FCLUEISDIR"     > /dev/tty;
     # echo "FILEINFOLDER=$FILEINFOLDER" > /dev/tty;
     # echo "ACTIONDESC=$ACTIONDESC"     > /dev/tty;
+    # echo "SEARCHSUBFOLDER=$SEARCHSUBFOLDER" > /dev/tty;
+    # echo "MAXDEPTH=$MAXDEPTH" > /dev/tty;
 
     COMMAND=choose
     if [ "$FCLUEISDIR" = true ]; then
@@ -69,8 +61,8 @@ if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"
         # echo "Using FCLUE of [$BASEDIR] [$FINDFCLUE]" > /dev/tty;
         # CMD="find $BASEDIR -type $ARTIFACTTYPE -name \"$FINDFCLUE\""
         # echo "Running CMD=$CMD"
-        for i in {1..10}
-        do
+        # for i in $MAXDEPTH
+        for (( i=1; i<=$MAXDEPTH; i++ )); do
             CMD="find \"$BASEDIR\" -maxdepth $i -type $ARTIFACTTYPE -wholename \"$FINDFCLUE\""
             # echo -e "\nRunning CMD=[$CMD]" > /dev/tty;
             FCONFIG=$(eval $CMD)

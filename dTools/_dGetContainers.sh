@@ -58,7 +58,7 @@ else
     else
         echo $CNAME
     fi
-    if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 # echo "CNAME=$CNAME"
 ITEMS=()

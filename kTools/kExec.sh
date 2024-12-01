@@ -72,7 +72,7 @@ while true; do
         -h | --help ) 
             echo -e $(help);
             # echo "help rc=$?"
-            if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             break ;;
         -fv | --forcevalue ) 
             USECCLUE=false; shift ;;

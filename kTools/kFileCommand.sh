@@ -66,7 +66,7 @@ while true; do
             VERBOSE=false; shift ;;
         -h | --help ) 
             echo -e $(help);
-            if [ "$CALLMODE" == "executed" ]; then exit; else return; fi
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             break ;;
         -y | --yes ) 
             ASK=false; shift ;;
