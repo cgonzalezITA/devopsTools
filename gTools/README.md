@@ -106,8 +106,8 @@ The scenario is that at this point you are at your altBranch with a number of co
 git log --oneline
     6fb28f6 (HEAD -> altBranch, tag: step04, origin/altBranch) Use Admin API to manage routes
     f405746 (tag: step03) Step03: Deploy a new route via the altBranch.yaml file
-    a0175d9 (tag: step02) Step02: Deploy a functional version of altBranch
-    7488c0f (tag: step01) Step01 of altBranch deployment
+    a0175d9 (tag: step02) step02: Deploy a functional version of altBranch
+    7488c0f (tag: step01) step01 of altBranch deployment
     5ab8044 helms/altBranch empty certificates added
     3a42eb4 (origin/main, origin/HEAD, main) Initial commit
 ```
@@ -116,8 +116,8 @@ git log --oneline
 git rebase -i HEAD~5
   # At this point a nano editor opens showing the pick (use commit) besides comments describing the possible operations (here we are to use just squash): 
   pick 5ab8044 helms/altBranch empty certificates added
-  pick 7488c0f Step01 of altBranch deployment
-  pick a0175d9 Step02: Deploy a functional version of altBranch
+  pick 7488c0f step01 of altBranch deployment
+  pick a0175d9 step02: Deploy a functional version of altBranch
   pick f405746 Step03: Deploy a new route via the altBranch.yaml file
   pick 6fb28f6 Use Admin API to manage routes
 
@@ -130,8 +130,8 @@ git rebase -i HEAD~5
 - Replace the pick command by the squash command at the editor but for the first line that should contain the summary of the commits
 ```
   pick 5ab8044 helms/altBranch empty certificates added
-  squash 7488c0f Step01 of altBranch deployment
-  squash a0175d9 Step02: Deploy a functional version of altBranch
+  squash 7488c0f step01 of altBranch deployment
+  squash a0175d9 step02: Deploy a functional version of altBranch
   squash f405746 Step03: Deploy a new route via the altBranch.yaml file
   squash 6fb28f6 Use Admin API to manage routes
 ```

@@ -97,15 +97,16 @@ git submodule update --init --recursive
 ### Enabling access once git is up to date
 Most of the content of this project are scripts, so execution permission must be granted to them:
 ```shell
-find tools -name "*.sh" -type f -exec chmod +x {} +
+find devopTools -name "*.sh" -type f -exec chmod +x {} +
 ```
 
 To ease the access to the scripts, several approaches can be taken. The best one is to give access to scripts via the alias ubuntu feature. This aproach speeds up the writting of the commands.  
-_For example, to refer to the tool designed to deploy helm charts, only the 'h' and the 'F' chars have to be typed (plus the tab key). 
+_For example_, to refer to the tool designed to deploy helm charts, only the 'h' and the 'F' chars have to be typed (plus the tab key). 
 
 ```shell
-hF+<tab> --> hFileCommand._
+# Typing h+F+<tab> --> hFileCommand._
 ```
+
 - 'g' commands refer to GIT commands.
 - 'd' commands refer to DOCKER commands.
 - 'k' commands refer to KUBERNETES commands.
@@ -156,7 +157,7 @@ vi ~/.bashrc
 Search for the section in which the PATH ENV var is defined. Something like export PATH... and  
 Add the tool folders:
 ```shell
-export _TOOLSFOLDER="/project/tools"
+export _TOOLSFOLDER="/project/devopTools"
 export PATH="$__TOOLSFOLDER/fTools:$_TOOLSFOLDER/dTools:$_TOOLSFOLDER/gTools:$_TOOLSFOLDER/dTools:$_TOOLSFOLDER/kTools:$_TOOLSFOLDER/hTools:$PATH"
 ```
 
