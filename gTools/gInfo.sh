@@ -102,6 +102,7 @@ echo "- $LABEL:" | egrep --color=auto  "$LABEL"
 eval "$CMD"
 if [ "$VERBOSE" = true ]; then
     echo -e "> Run command [$CMD]" 
+    echo "-If you want to change the remoteURL, use the 'git remote set-url origin [git@ | https://]...git' command-"
 fi
 
 
