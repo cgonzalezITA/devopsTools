@@ -62,7 +62,7 @@ function help() {
             \t-df <dockerCompose file>: def. docker-compose.yml                                                                   \n
             \t-dc <dockerCompose command>: docker-compose*, docker compose, ...                                                   \n
             \t                    export DOCKERCOMPOSE_CMD=<DockerComposeCommnad> to avoid having to repeat it on this commands   \n
-            \t-pdir <Project directory>: def. Folder where the docker-compose is located                                          \n
+            \t[-pdir | --project-directory <Project directory>]: def. Folder where the docker-compose is located                                          \n
             \t-p <Project name>: Deploy the docker compose as a project with the given name                                       \n
             \t-env <envFile>: Specifies a custom .env file (def=.env)                                                             \n
             \t-b: Build the docker compose images                                                                                 \n
@@ -89,9 +89,9 @@ while true; do
             # echo "help rc=$?"
             [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             break ;;
-        -y|--yes )
+        -y | --yes )
             # \t[-y|--yes]: No confirmation questions are asked \n
-            ASK=true
+            ASK=false
             shift ;;
         -f ) 
             FOLDER_VALUES=$2
@@ -132,11 +132,10 @@ while true; do
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#COMMAND}" -eq 0; then
                 COMMAND=$1
-                shift;
             elif test "${#SERVICENAME}" -eq 0; then
                 SERVICENAME=$1;
-                shift;
-            fi ;;
+            fi
+            shift;;
     esac
 done
 
@@ -262,7 +261,9 @@ fi
 if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     COMMAND="restart";
     [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
-    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME down $SERVICENAME"
+    ASKPARAM=""
+    [ "$ASK" = false ] && ASKPARAM="-y";
+    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM down $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";w
     bash -c "$CMD"
     RC=$?; 
@@ -278,7 +279,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     else
         DETACHCMD=""
     fi
-    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME up $SERVICENAME"
+    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $ASKPARAM up $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
     [ "$VERBOSE" = true ] && echo "---"
     bash -c "$CMD"

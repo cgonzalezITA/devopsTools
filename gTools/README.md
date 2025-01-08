@@ -7,6 +7,7 @@ This folder contains scripts to ease certain operations on the git environment.
     - [Changing branch with skipped files involved](#changing-branch-with-skipped-files-involved)
   - [Git: Delete a branch local and remote](#git-delete-a-branch-local-and-remote)
   - [Github: Git Squash](#github-git-squash)
+  - [Github: Merge two branches](#github-merge-two-branches)
   - [Github: Merge using git rebase](#github-merge-using-git-rebase)
   - [Github: Delete a tag and upgrade it to a later commit](#github-delete-a-tag-and-upgrade-it-to-a-later-commit)
 
@@ -163,21 +164,54 @@ git log --oneline
 ```
 - Suggestion: a good option is to [rebase your altBranch into another branch](#github-merge-using-git-rebase)
 
+## Github: Merge two branches
+
+```shell
+# The scenario is that at this point you are at your altBranch with a number of commits that have to be merged into the main branch.
+# Downloads latest change from main
+DST_BRANCH=main
+SRC_BRANCH=altBranch
+git checkout $DST_BRANCH
+git pull
+git checkout $SRC_BRANCH
+git pull
+# First of all merges the dest into the src to avoid problems on the dest
+git merge --no-ff $DST_BRANCH
+# Solve any potential conflict and commit it if necessary.
+git commit -m "message if it is necessary to commit some changes"
+git push
+# If an error appears, you can try
+git push --force
+
+git checkout $DST_BRANCH
+git merge --no-ff $SRC_BRANCH
+# Solve any potential conflict and commit it if necessary.
+git commit -m "message if it is necessary to commit some changes"
+git push
+# If an error appears, you can try
+git push --force
+git push --force-with-lease
+```
+
+
 ## Github: Merge using git rebase
 Taken from [The Modern Coder-Git rebase](https://www.youtube.com/watch?v=f1wnYdLEpgI)  
-He defends the point that rebase is for complex git cleaner that merging.  
-It is dangerous when multiple people is commiting to the master branch.   
+He defends the point that rebase is for complex gits cleaner that merging.  
+It is dangerous when multiple people is commiting to the main branch.   
 NOTE: Here _master_ is just to ilustrate the example. I used _altBranch_ as the branch to rebase into _master_
+
 ```shell
 # The scenario is that at this point you are at your altBranch with a number of commits.
-# Downloads latest change from master
-git checkout master
+# Downloads latest change from main
+DST_BRANCH=main
+SRC_BRANCH=altBranch
+git checkout $DST_BRANCH
 git pull
-git checkout altBranch
-git rebase master
+git checkout $SRC_BRANCH
+git rebase $DST_BRANCH
 # Solve any potential conflict and commit it.
-git checkout master
-git rebase altBranch
+git checkout $DST_BRANCH
+git rebase $SRC_BRANCH
 # No conflicts should appear
 git push
 # If an error appears, you can try
