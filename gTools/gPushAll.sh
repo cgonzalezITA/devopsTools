@@ -93,6 +93,28 @@ for dir in . */; do
     # echo "LEN=${#PENDINGCOMMITS}"
     test "${#PENDINGCOMMITS}" -gt 0 && HASPENDINGCOMMITS=true ||  HASPENDINGCOMMITS=false
     # echo "HASPENDINGCOMMITS=$HASPENDINGCOMMITS"
+
+    if [ "$FORCE" == true ]; then
+        # Force tags
+        CMD="git push --tags"
+        if [ "$ASK" = true ]; then
+        echo -e ">Running command [$CMD]" 
+        MSG=$(echo "QUESTION: Do you want to run the command to push tags of git [$GITNAME] at branch $branch [$BRANCHNAME]?" \
+        | sed "s/\(to push tags\)/\x1b[31m\1\x1b[0m/g")
+        read -p "$MSG [Y/n]? " -n 1 -r 
+            echo    # (optional) move to a new line
+        else
+        REPLY="y"
+        fi
+        if [[ $REPLY =~ ^[1Yy]$ ]]; then
+            bash -c "$CMD"
+            RC=$?
+            if test "$RC" -ne 0; then 
+                echo "Error: Command finished with RC code=$RC"
+            fi
+        fi
+    fi
+
     if [ "$FORCE" == true ] || [ "$HASPENDINGCOMMITS" == true ]; then
         echo -e "Pushing updates for $GITNAME" | sed "s|\($GITNAME\)|\x1b[31m\1\x1b[0m|g"        
         CMD="git status -sb"
@@ -122,7 +144,7 @@ for dir in . */; do
             bash -c "$CMD"
             RC=$?
             if test "$RC" -ne 0; then 
-                echo "Command finished with RC code=$RC"
+                echo "Error: Command finished with RC code=$RC"
             fi
         fi
 

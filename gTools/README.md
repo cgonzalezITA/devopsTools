@@ -5,14 +5,23 @@ This folder contains scripts to ease certain operations on the git environment.
   - [Commit with comments](#commit-with-comments)
   - [Freeze a file](#freeze-a-file)
     - [Changing branch with skipped files involved](#changing-branch-with-skipped-files-involved)
+  - [Git: Delete a branch local and remote](#git-delete-a-branch-local-and-remote)
   - [Github: Git Squash](#github-git-squash)
+  - [Github: Merge two branches](#github-merge-two-branches)
   - [Github: Merge using git rebase](#github-merge-using-git-rebase)
-  - [Github: Upgrade tag to a later commit](#github-upgrade-tag-to-a-later-commit)
+  - [Github: Delete a tag and upgrade it to a later commit](#github-delete-a-tag-and-upgrade-it-to-a-later-commit)
 
 ## Creating a git keypair certificate
-If opting for the **git@** ref. you will be required to have a git keypair certificate setup (the symptom is that you will be asked for the git password that does not match the user password). You will have to add hence a keypair certificate to your machine to connect to the git.  
-Execute the following steps at an Ubuntu machine in which the git has to be cloned (For windows environments see the [presentation de metología del dpto ITA BDSC -git sin passwords-](https://feditmpsa.sharepoint.com/:p:/s/TD_BD_Sistemas_Cognitivos2/EUsBoj-0XsBFjQ5AVnV5UJABpygh1x9vMnwkAfGIddkt_Q?e=55cl18)):
-1. (Linux & Windows) Generate the certificate
+If the remote URL is a **git@** ref. you will be required to have a git keypair certificate setup (the symptom is that you will be asked for the git password that does not match the user password). You will have to add hence a keypair certificate to your machine to connect to the git.  
+Execute the following steps at an Ubuntu machine in which the git has to be cloned (For windows environments see the [presentation de metología del dpto ITA BDSC -git sin passwords-](https://feditmpsa.sharepoint.com/:p:/s/TD_BD_Sistemas_Cognitivos2/EUsBoj-0XsBFjQ5AVnV5UJABpygh1x9vMnwkAfGIddkt_Q?e=55cl18)):  
+1. If your remote URL is still a **http://...git** ref and you want to replace it by its **git@...git*** remote URL:
+  ```shell
+  git remote -v # To view the remote URL
+  origin  https://github.com/cgonzalezITA/devopsTools.git (fetch)
+  origin  https://github.com/cgonzalezITA/devopsTools.git (push)
+  git remote set-url origin git@github.com/cgonzalezITA/devopsTools.git
+  ```
+2. (Linux & Windows) Generate the certificate
 ```shell
 KEY_NAME=ed25519
 EMAIL=<yourEmail>
@@ -21,7 +30,7 @@ ssh-keygen -t ed25519 -C $EMAIL -f ~/.ssh/$KEY_NAME
 ssh-keygen -o -t rsa -C $EMAIL -f ~/.ssh/$KEY_NAME
 ```
 
-2. Copy the public certificate to the SSH Keys page of your git server (here you have the links to some of the ssh management pages):  
+1. Copy the public certificate to the SSH Keys page of your git server (here you have the links to some of the ssh management pages):  
 - **[git.itainnova.es](https://git.itainnova.es/-/user_settings/ssh_keys)**
 - [github](https://github.com/settings/keys)
 - ...
@@ -32,7 +41,7 @@ cat ~/.ssh/$KEY_NAME.pub
 ssh-$KEY_NAME AAAAC3...olVN your_email@example.com
 ```
 
-3. (Linux & Windows) Add the private key to the authorizes_keys in your working machine (the key file <id_$KEY_NAME.pub> should be replaced by the just generated one):
+1. (Linux & Windows) Add the private key to the authorizes_keys in your working machine (the key file <id_$KEY_NAME.pub> should be replaced by the just generated one):
 > ssh-add ~/.ssh/$KEY_NAME  
 
 If an error appears, you may need to activate the ssh-agent service:
@@ -96,47 +105,56 @@ git checkout $NEWBRANCH
 # gFreeze
 gFreeze -unstash
 ```
+## Git: Delete a branch local and remote
+```shell
+# To view the git info, you can run the command 'gInfo'
+REMOTEGIT=https://github.com/$USER/${REPOSITORYNAME}.git
+# Remove the remote branch
+git push $REMOTEGIT --delete $BRANCHNAME
+# Remove the local branch
+git branch -d $BRANCHNAME
+```
 
 ## Github: Git Squash
 Taken from [The Modern Coder-Git squash](https://www.youtube.com/watch?v=V5KrD7CmO4o)
-Git squash is used to while keeping the changes, get rid of not relevant comments in the commits replacing several commits by just one commit sumarizing the changes of all the squashed commits.  
+Git squash is used to, while keeping the changes, get rid of not relevant comments in the commits squashing several of them into just one commit summarizing the changes of all the squashed commits.  
 The scenario is that at this point you are at your altBranch with a number of commits and you want to replace the X latest ones by just one
 - Review the latest changes
 ```shell
 git log --oneline
     6fb28f6 (HEAD -> altBranch, tag: step04, origin/altBranch) Use Admin API to manage routes
     f405746 (tag: step03) Step03: Deploy a new route via the altBranch.yaml file
-    a0175d9 (tag: step02) Step02: Deploy a functional version of altBranch
-    7488c0f (tag: step01) Step01 of altBranch deployment
+    a0175d9 (tag: step02) step02: Deploy a functional version of altBranch
+    7488c0f (tag: step01) step01 of altBranch deployment
     5ab8044 helms/altBranch empty certificates added
     3a42eb4 (origin/main, origin/HEAD, main) Initial commit
 ```
-- We will squash the latest 5 latest commits   
+- We will squash the latest 5 latest commits (5 in this example)  
 ```shell
 git rebase -i HEAD~5
-  # At this point a nano editor opens showing the pick (use commit) besides comments describing the possible operations (here we are to use just squash): 
+  # At this point a nano editor opens showing X lines with 'pick <COMMITID> <COMMENTS>'. Later, some comments describing the possible operations 
   pick 5ab8044 helms/altBranch empty certificates added
-  pick 7488c0f Step01 of altBranch deployment
-  pick a0175d9 Step02: Deploy a functional version of altBranch
+  pick 7488c0f step01 of altBranch deployment
+  pick a0175d9 step02: Deploy a functional version of altBranch
   pick f405746 Step03: Deploy a new route via the altBranch.yaml file
   pick 6fb28f6 Use Admin API to manage routes
-
   # Rebase 3a42eb4..6fb28f6 onto f405746 (5 commands)
   #
   # Commands:
   # p, pick <commit> = use commit
 ...
 ```
-- Replace the pick command by the squash command at the editor but for the first line that should contain the summary of the commits
+- Replace the pick command by the squash command at the editor except for the first line that should contain the summary of the commits
 ```
   pick 5ab8044 helms/altBranch empty certificates added
-  squash 7488c0f Step01 of altBranch deployment
-  squash a0175d9 Step02: Deploy a functional version of altBranch
+  squash 7488c0f step01 of altBranch deployment
+  squash a0175d9 step02: Deploy a functional version of altBranch
   squash f405746 Step03: Deploy a new route via the altBranch.yaml file
   squash 6fb28f6 Use Admin API to manage routes
 ```
-- Save the file and exit. A second editor will appear with the suggested changes. Remove or comment all the commit messages except the one you want to leave (In our case, the 5th one)
-In the example, the only line not commented out has been _"altBranch deployed to using Admin API to manage routes"_
+- Save the file and exit.  
+  A second editor will appear with the suggested changes. Remove or comment all the commit messages except the one you want to leave (In our case, the 5th one)
+In the example, the only line not commented out has been _"helms/altBranch empty certificates added"_
 
 - After saving and exiting, the changes are performed. To review the commits now, re-run the command:
 ```shell
@@ -146,21 +164,54 @@ git log --oneline
 ```
 - Suggestion: a good option is to [rebase your altBranch into another branch](#github-merge-using-git-rebase)
 
+## Github: Merge two branches
+
+```shell
+# The scenario is that at this point you are at your altBranch with a number of commits that have to be merged into the main branch.
+# Downloads latest change from main
+DST_BRANCH=main
+SRC_BRANCH=altBranch
+git checkout $DST_BRANCH
+git pull
+git checkout $SRC_BRANCH
+git pull
+# First of all merges the dest into the src to avoid problems on the dest
+git merge --no-ff $DST_BRANCH
+# Solve any potential conflict and commit it if necessary.
+git commit -m "message if it is necessary to commit some changes"
+git push
+# If an error appears, you can try
+git push --force
+
+git checkout $DST_BRANCH
+git merge --no-ff $SRC_BRANCH
+# Solve any potential conflict and commit it if necessary.
+git commit -m "message if it is necessary to commit some changes"
+git push
+# If an error appears, you can try
+git push --force
+git push --force-with-lease
+```
+
+
 ## Github: Merge using git rebase
-Taken from [The Modern Coder-Git rebase](https://www.youtube.com/watch?v=f1wnYdLEpgI)
-He defends the point that rebase is for complex git cleaner that merging.  
-It is dangerous when multiple people is commiting to the master branch.   
+Taken from [The Modern Coder-Git rebase](https://www.youtube.com/watch?v=f1wnYdLEpgI)  
+He defends the point that rebase is for complex gits cleaner that merging.  
+It is dangerous when multiple people is commiting to the main branch.   
 NOTE: Here _master_ is just to ilustrate the example. I used _altBranch_ as the branch to rebase into _master_
+
 ```shell
 # The scenario is that at this point you are at your altBranch with a number of commits.
-# Downloads latest change from master
-git checkout master
+# Downloads latest change from main
+DST_BRANCH=main
+SRC_BRANCH=altBranch
+git checkout $DST_BRANCH
 git pull
-git checkout altBranch
-git rebase master
+git checkout $SRC_BRANCH
+git rebase $DST_BRANCH
 # Solve any potential conflict and commit it.
-git checkout master
-git rebase altBranch
+git checkout $DST_BRANCH
+git rebase $SRC_BRANCH
 # No conflicts should appear
 git push
 # If an error appears, you can try
@@ -168,25 +219,28 @@ git push --force
 git push --force-with-lease
 ```
 
-## Github: Upgrade tag to a later commit
+## Github: Delete a tag and upgrade it to a later commit
+First section on the scripts deletes the tag, and then, it is reassigned to the most recent commit.
 ```shell
 # Taken from https://stackoverflow.com/questions/8044583/how-can-i-move-a-tag-on-a-git-branch-to-a-different-commit
 
 # Take the list of remote tags
 git ls-remote --tags
+TAG=<tagName>
 # Delete the desired tag on any remote before you push
-git push origin :refs/tags/<tagname>
+git push origin :refs/tags/$TAG
 
 # Delete local tag (if it exists)
-git tag -d <tagname>
+git tag -d $TAG
 
 # Replace the tag to reference the most recent commit
-git tag -fa <tagname>
+NEWTAG=<newTagName>
+git tag -fa $NEWTAG
 # or
-git tag -f <tagname> -m <tagComment>
+git tag -f $NEWTAG -m <tagComment>
 
 # Push the tag to the remote origin
 git push origin --tags
 # Maybe it is required to specify the --force parameter
-git push origin --force <tagname>
+git push origin --force $NEWTAG
 ```
