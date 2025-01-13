@@ -42,10 +42,15 @@ ssh-$KEY_NAME AAAAC3...olVN your_email@example.com
 ```
 
 1. (Linux & Windows) Add the private key to the authorizes_keys in your working machine (the key file <id_$KEY_NAME.pub> should be replaced by the just generated one):
-> ssh-add ~/.ssh/$KEY_NAME  
+```script
+ssh-add ~/.ssh/$KEY_NAME  
+```
 
 If an error appears, you may need to activate the ssh-agent service:
-> eval `ssh-agent -s`
+
+```script
+eval `ssh-agent -s`
+```
 
 **NOTE**: Keypair generation for windows is fully described at [presentation de metología del dpto ITA BDSC -git sin passwords-](https://feditmpsa.sharepoint.com/:p:/s/TD_BD_Sistemas_Cognitivos2/EUsBoj-0XsBFjQ5AVnV5UJABpygh1x9vMnwkAfGIddkt_Q?e=55cl18) including Windows setup and snapshots.  
 

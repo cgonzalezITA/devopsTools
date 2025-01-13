@@ -210,7 +210,7 @@ elif [ $STEP == "2" ]; then
   if [ "$VERBOSE" = true ]; then
     echo "  Secret [$SNAME] should have been created $NAMESPACEDESC Here you have the matching secrets installed at K8s:"
     kubectl get secrets $NAMESPACEARG | grep $SNAME
-    echo "  NOTE: DO NOT FORGET TO DISABLE THE SECRET FILES"
+    echo "  NOTE: DO NOT FORGET TO DELETE THE SECRET FILES (Running command [$SCRIPTNAME] 3)"
   fi
 elif [ $STEP == "3" ]; then
   sudo rm $KEY_PRIV_DST

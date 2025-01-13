@@ -31,6 +31,8 @@ kubectl apply -n <targetNS> -f "kTools/<k8s_file. eg. k8s_components-utils>.yaml
 
 ### Log requests made to ingress
 The logs of your Ingress controller can be seen when it handles requests and returns errors such as "502 Bad Gateway".  
+The Ingress infrastructure is held at a devoted namespace that can be named  _ingress-nginx_, _ingress_, ... depending on the kubernetes deployed.
+
 ```shell
 # Identify the Ingress Controller Pods
 $ kubectl get pods -n ingress-nginx
