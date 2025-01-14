@@ -121,7 +121,7 @@ git branch -d $BRANCHNAME
 ```
 
 ## Github: Git Squash
-Taken from [The Modern Coder-Git squash](https://www.youtube.com/watch?v=V5KrD7CmO4o)
+Taken from [StackOverflow: How do I squash my last N commits together](https://stackoverflow.com/questions/5189560/how-do-i-squash-my-last-n-commits-together)
 Git squash is used to, while keeping the changes, get rid of not relevant comments in the commits squashing several of them into just one commit summarizing the changes of all the squashed commits.  
 The scenario is that at this point you are at your altBranch with a number of commits and you want to replace the X latest ones by just one
 - Review the latest changes
@@ -136,38 +136,15 @@ git log --oneline
 ```
 - We will squash the latest 5 latest commits (5 in this example)  
 ```shell
-git rebase -i HEAD~5
-  # At this point a nano editor opens showing X lines with 'pick <COMMITID> <COMMENTS>'. Later, some comments describing the possible operations 
-  pick 5ab8044 helms/altBranch empty certificates added
-  pick 7488c0f step01 of altBranch deployment
-  pick a0175d9 step02: Deploy a functional version of altBranch
-  pick f405746 Step03: Deploy a new route via the altBranch.yaml file
-  pick 6fb28f6 Use Admin API to manage routes
-  # Rebase 3a42eb4..6fb28f6 onto f405746 (5 commands)
-  #
-  # Commands:
-  # p, pick <commit> = use commit
-...
-```
-- Replace the pick command by the squash command at the editor except for the first line that should contain the summary of the commits
-```
-  pick 5ab8044 helms/altBranch empty certificates added
-  squash 7488c0f step01 of altBranch deployment
-  squash a0175d9 step02: Deploy a functional version of altBranch
-  squash f405746 Step03: Deploy a new route via the altBranch.yaml file
-  squash 6fb28f6 Use Admin API to manage routes
-```
-- Save the file and exit.  
-  A second editor will appear with the suggested changes. Remove or comment all the commit messages except the one you want to leave (In our case, the 5th one)
-In the example, the only line not commented out has been _"helms/altBranch empty certificates added"_
-
-- After saving and exiting, the changes are performed. To review the commits now, re-run the command:
-```shell
+BRANCH_NAME=altBranch
+git checkout $BRANCH_NAME
+git reset --soft HEAD~5
+# All the modified files in the latests 5 commits are moved to the stage area waiting to be commited
+git commit -m "helms/altBranch empty certificates added"
+git push --force-with-lease origin $BRANCH_NAME
+# After committing, check the new commit's structure:
 git log --oneline
-9bca0cd (HEAD -> altBranch) altBranch deployed to using Admin API to manage routes
-3a42eb4 (origin/main, origin/HEAD, main) Initial commit
 ```
-- Suggestion: a good option is to [rebase your altBranch into another branch](#github-merge-using-git-rebase)
 
 ## Github: Merge two branches
 
