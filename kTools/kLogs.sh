@@ -32,6 +32,7 @@ K8SARTIFACT=""
 K8SDEPLOYNAMES=" d deploy deployment deployments "
 ARTIFACTSFULLNAMES=" pod pods svc service services $K8SDEPLOYNAMES  "
 # \t-c <container name>: Container inside the artifact target of the command.                           \n
+# \t-ac | --all-containers: Mimics the --all-containers=true kubectl argument \n
 # CARG="--all-containers --max-log-requests 20"
 CARG=""
 CCOMPONENT=""
@@ -46,6 +47,7 @@ DOWAIT=false
 ASK=true
 # \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag is set)\n
 OUTPUTFILE=""
+
 #############################
 ## Functions               ##
 #############################
@@ -107,6 +109,10 @@ while true; do
             DOWAIT=true; shift ;;
         -fvn | -fnv | --forceNamespaceValue ) 
             USENSCCLUE=false; shift ;;
+        -ac | --all-containers )
+            # : Mimics the --all-containers=true kubectl argument \n
+            CARG="--all-containers"
+            shift ;;
         -c | --container ) 
             CCOMPONENT=$2
             CARG="$CCOMPONENT"
@@ -219,13 +225,13 @@ if [ "$VERBOSE" = true ]; then
     if test "${#PODCONTAINERS}" -gt 0; then
         echo -e "CONTAINERS IN [$K8SARTIFACT] [$CNAME]:     $PODCONTAINERS" >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCOMPONENT"
         echo -e "INITCONTAINERS IN [$K8SARTIFACT] [$CNAME]: $PODINITCONTAINERS" >> ${OUTPUTFILE:-/dev/stdout} | egrep --color=auto  "$CCOMPONENT"
-        # echo "  SHOW INFO OF CONTAINER=[${CARG}]"
     fi
+    [ "$CARG" == "all-containers" ] && echo "--all-containers=true"
 fi
 
 function run() {
     if test "$#" -ge 1; then
-        CARG1="-c $1"
+        [ "$1" == "--all-containers" ] && CARG1="$1=true" || CARG1="-c $1"; 
     else
         CARG1=""
     fi    
