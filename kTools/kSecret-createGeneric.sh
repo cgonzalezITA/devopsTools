@@ -19,6 +19,8 @@ NSCLUE=""
 NAMESPACE="default"
 NAMESPACEDESC="in default namespace."
 NAMESPACEARG=""
+# \t-fvn: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
+USENSCCLUE=true
 VERBOSE=true
 ASK=true
 FOLDER_ARTIFACTS=./KArtifacts/
@@ -27,8 +29,13 @@ CCLUE=""
 SECTION="data"
 # \t-r: Replaces existing                                                                               \n
 REPLACE=false
+TYPE=generic
 USEBASE64=true
 K8SARTIFACT=secret
+SECRETNAME=""
+JSON=""
+
+FROMWHERE=--from-env-file
 #############################
 ## Functions               ##
 #############################
@@ -42,9 +49,14 @@ function help() {
             \t-r: Replaces existing                                                                                \n
             \t-n <NamespaceClue>: Specifies a clue of the namespace to be used.                                    \n
             \t                    export DEF_KTOOLS_NAMESPACE=<NSCLUE> env var to avoid having to repeat it on kTools commands \n
-            \t-nd: Shortcut for -n default                                                                             \n
+            \t-nd: Shortcut for -n default                                                                         \n
+            \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)       \n
+            \t -generic (default) Create a secret from a local file, directory, or literal value \n
+            \t -docker-registry   Create a secret for use with a Docker registry \n
+            \t -tls               Create a TLS secretgeneric (Better use kSecret-create4Domain) \n
             \t<secret name>: Name of the secret to be created                                                      \n
-            \t<<jsonWithData>: JSON with key-value pairs. It must have the following syntax '{\"key\": \"value\"}'"
+            \t<<jsonWithData>: \n
+            \t -type=generic: JSON with key-value pairs. It must have the following syntax '{\"key\": \"value\"}'"
     echo $HELP
 }
 
@@ -54,6 +66,7 @@ function help() {
 
 # getopts arguments
 while true; do
+    [[ "$#" -eq 0 ]] && break;
     case "$1" in
         # -v) 
         #     VERBOSE=false; shift ;;
@@ -76,35 +89,41 @@ while true; do
             # echo analyzing ns=$2;
             NSCLUE=$2
             shift ; shift ;;
+        # -t | --type )
+        #     # \t-t | --type: <type of secret> | Available Commands:
+        #     # generic           Create a secret from a local file, directory, or literal value
+        #     # docker-registry   Create a secret for use with a Docker registry
+        #     # tls               Create a TLS secretgeneric
+        #     TYPE="$2"
+            shift ; shift ;;
         -nd | --namespace-default ) 
             NAMESPACESET=true
             NSCLUE="default"
             shift ;;
+        -fvn | -fnv | --forceNamespaceValue ) 
+            USENSCCLUE=false; shift ;;
         * ) 
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            fi
-            break ;;
+            elif test "${#SECRETNAME}" -eq 0; then
+                SECRETNAME=$1
+            elif test "${#JSON}" -eq 0; then
+                JSON=$1;
+            fi ;
+            shift ;;
     esac
 done
 
-if test "$#" -lt 2; then
+if test "${#SECRETNAME}" -eq 0 || test "${#JSON}" -eq 0; then
     echo -e $(help "ERROR: <secretName> & <jsonWithData> are mandatory")
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
-SECRETNAME=$1
-shift;
-JSON=$1
 
 #Namespace management
 if test "${#NSCLUE}" -eq 0 && test "${#DEF_KTOOLS_NAMESPACE}" -gt 0; then
     NSCLUE=$DEF_KTOOLS_NAMESPACE
     DEF_KTOOLS_NAMESPACE_USED=true
-fi
-if test "$NAMESPACEARG" == "--all-namespaces" && test "${#NSCLUE}" -gt 0 ; then
-  echo -e $(help "ERROR: -A (--all-namespaces) and -n (specific namespace) are exclusive"); 
-  [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 if test "${#NSCLUE}" -gt 0; then
     if [ "$USENSCCLUE" = true ]; then
@@ -122,6 +141,31 @@ if test "${#NSCLUE}" -gt 0; then
     NAMESPACEDESC="in namespace [$NAMESPACE]"; 
     NAMESPACEARG="-n $NAMESPACE"; 
 fi
+
+# if test "${#NSCLUE}" -eq 0 && test "${#DEF_KTOOLS_NAMESPACE}" -gt 0; then
+#     NSCLUE=$DEF_KTOOLS_NAMESPACE
+#     DEF_KTOOLS_NAMESPACE_USED=true
+# fi
+# if test "$NAMESPACEARG" == "--all-namespaces" && test "${#NSCLUE}" -gt 0 ; then
+#   echo -e $(help "ERROR: -A (--all-namespaces) and -n (specific namespace) are exclusive"); 
+#   [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+# fi
+# if test "${#NSCLUE}" -gt 0; then
+#     if [ "$USENSCCLUE" = true ]; then
+#         NAMESPACEORERROR=$( $BASEDIR/_kGetNamespace.sh $NSCLUE );
+#         RC=$?; 
+#     else
+#         NAMESPACEORERROR=$NSCLUE;
+#         RC=$?; 
+#     fi
+#     if test "$RC" -ne 0; then 
+#         echo -e $(help "$NAMESPACEORERROR"); 
+#         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+#     fi;
+#     NAMESPACE=$NAMESPACEORERROR;
+#     NAMESPACEDESC="in namespace [$NAMESPACE]"; 
+#     NAMESPACEARG="-n $NAMESPACE"; 
+# fi
 
 # ### Using from-literal #####
 # https://unix.stackexchange.com/questions/734915/get-key-and-value-from-json-in-array-with-check
@@ -149,10 +193,15 @@ if [ "$VERBOSE" = true ]; then
   echo "             NAMESPACE=$MSG" | egrep --color=auto  "$NSCLUE" 
   echo "              REPLACE?=[$REPLACE]"
   echo "        K8S_SECRETNAME=[$SECRETNAME]"
+  echo "                  TYPE=[$TYPE]"
   echo "  BASE64 encoding used=[$USEBASE64]"
   echo "               SECRETS=[$LITERALARR]"
 fi
-
+if [[ "$TYPE" == "generic" ]]; then
+    FROMWHERE="--from-env-file"
+# elif [[ "$TYPE" == "docker-registry" ]]; then
+#     FROMWHERE="--from-file"
+fi
 if [ "$REPLACE" = true ]; then
     artifact=secret
     USECCLUE=false
@@ -175,7 +224,7 @@ if [ "$REPLACE" = true ]; then
 fi
 echo "---"
 # CMD=$(echo "kubectl create secret generic $NAMESPACEARG $SECRETNAME $LITERALARR")
-CMD=$(echo "kubectl create secret generic $NAMESPACEARG $SECRETNAME --from-env-file $TMPFILE")
+CMD=$(echo "kubectl create secret $TYPE $NAMESPACEARG $SECRETNAME $FROMWHERE $TMPFILE")
 echo "  Running command [$CMD]"
 ERR1=$( $CMD  2>&1)
 RC=$?

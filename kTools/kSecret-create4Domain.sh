@@ -124,11 +124,10 @@ while true; do
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#SNAME}" -eq 0; then
                 SNAME=$1;
-                shift;
             elif test "${#STEP}" -eq 0; then
                 STEP=$1;
-                shift;
-            fi ;;
+            fi
+            shift ;;
     esac
 done
 

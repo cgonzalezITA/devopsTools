@@ -126,11 +126,10 @@ while true; do
                     CCLUE=$1
                 fi
                 CCLUEORIG=$CCLUE
-                shift;
             elif test "${#K8SARTIFACT}" -eq 0; then
                 K8SARTIFACT=$1;
-                shift;
-            fi ;;
+            fi ;
+            shift ;;
     esac
 done
 
@@ -162,6 +161,7 @@ elif [[ ! ${ARTIFACTSFULLNAMES[@]} =~ " $K8SARTIFACT " ]] &&[[ "$CCLUEEMPTY" == 
     fi
 fi
 
+#Namespace management
 if ! test "$NAMESPACEARG" == "--all-namespaces" && test "${#NSCLUE}" -eq 0 && test "${#DEF_KTOOLS_NAMESPACE}" -gt 0; then
     NSCLUE=$DEF_KTOOLS_NAMESPACE
     DEF_KTOOLS_NAMESPACE_USED=true

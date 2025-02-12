@@ -42,13 +42,13 @@ ssh-$KEY_NAME AAAAC3...olVN your_email@example.com
 ```
 
 1. (Linux & Windows) Add the private key to the authorizes_keys in your working machine (the key file <id_$KEY_NAME.pub> should be replaced by the just generated one):
-```script
+```shell
 ssh-add ~/.ssh/$KEY_NAME  
 ```
 
 If an error appears, you may need to activate the ssh-agent service:
 
-```script
+```shell
 eval `ssh-agent -s`
 ```
 
