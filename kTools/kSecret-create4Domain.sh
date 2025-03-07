@@ -37,6 +37,8 @@ NAMESPACEARG=""
 SNAME=""
 # \t\t<step>*: Step of the generation 1|2|3"
 STEP=""
+# \t-r: Replaces existing                                                                               \n
+REPLACE=false
 
 #############################
 ## Functions               ##
@@ -48,12 +50,13 @@ function help() {
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs]  <secretName><step>                                           \n
           \tThis is a 3 steps process as the 1st and 3th have to be executed as sudo.                             \n
-          \t1º-  sudo $SCRIPTNAME [1]                                                                             \n
-          \t2º-  sudo $SCRIPTNAME [2]                                                                             \n
-          \t3th- sudo $SCRIPTNAME [3]                                                                             \n
+          \t1º-  sudo $SCRIPTNAME <secretName> [1]                                                                \n
+          \t2º-  sudo $SCRIPTNAME <secretName> [2]                                                                \n
+          \t3th- sudo $SCRIPTNAME <secretName> [3]                                                                \n
           \tParams (* params are mandatory):                                                                      \n
           \t\t-h: Show help info                                                                                  \n
           \t\t-v: Do not show verbose info                                                                        \n
+          \t\t-r: Replaces existing                                                                               \n
           \t\t-f <folderName>: Folder where the public/private keys are located                                   \n
           \t\t-tmp <folderName>: Folder where the temporal folders will be stored (def: /tmp)                     \n
           \t\t-pub <fileName>: Name of the public key file (def: fullchain.pem)                                   \n
@@ -83,13 +86,21 @@ while true; do
             echo -e $(help);
             [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             break ;;
+        -r | --replace ) 
+            REPLACE=true; shift ;;
         -f ) 
             PATH_CERTIFICATES=$2
-            if ! test -d $PATH_CERTIFICATES;then echo -e $(help "ERROR: Folder [$PATH_CERTIFICATES] must exist");return -1; fi;
+            if ! test -d $PATH_CERTIFICATES;then 
+                echo -e $(help "ERROR: Folder [$PATH_CERTIFICATES] must exist");
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            fi;
             shift ; shift ;;
         -tmp ) 
             TMPFOLDER=$2
-            if ! test -d $TMPFOLDER;then echo -e $(help "ERROR: Temporal folder [$PATH_CERTIFICATES] must exist");return -1; fi;
+            if ! test -d $TMPFOLDER;then 
+                echo -e $(help "ERROR: Temporal folder [$PATH_CERTIFICATES] must exist");
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            fi;
             shift ; shift ;;
         -pub ) 
             KEY_PUB=$2
@@ -113,11 +124,10 @@ while true; do
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#SNAME}" -eq 0; then
                 SNAME=$1;
-                shift;
             elif test "${#STEP}" -eq 0; then
                 STEP=$1;
-                shift;
-            fi ;;
+            fi
+            shift ;;
     esac
 done
 
@@ -125,7 +135,7 @@ if test "${#SNAME}" -eq 0; then
     echo -e $(help "ERROR: <secretName> is mandatory");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 elif test "${#STEP}" -eq 0; then
-    echo -e $(help "ERROR: <step> is mandatory")
+    echo -e $(help "ERROR: <secretName> was provided ($SNAME) but still, <step> is mandatory")
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
@@ -170,6 +180,7 @@ if [ "$VERBOSE" = true ]; then
   echo "           KEY_PRIV=$KEY_PRIV"
   echo "       KEY_PRIV_SRC=$KEY_PRIV_SRC"
   echo "       KEY_PRIV_DST=$KEY_PRIV_DST"
+  echo "           REPLACE?=[$REPLACE]"
   echo "              SNAME=$SNAME"
   echo "              STEP=$STEP"
 fi
@@ -196,6 +207,29 @@ if [ "$STEP" -eq 1 ]; then
     echo "  Temporal secret files have been generated. Do not forget to disable them (3th command)"
   fi
 elif [ $STEP == "2" ]; then
+echo "REPLACE=$REPLACE"
+    if [ "$REPLACE" = true ]; then
+        artifact=secret
+        USECCLUE=false
+        CCLUE=$SNAME
+        COMMAND=delete
+        shopt -s expand_aliases
+        . ~/.bash_aliases
+        getArtifact_result=$( _kGetArtifact "$artifact" "$USECCLUE" "$CCLUE" "$NAMESPACEARG" "$COMMAND" false);
+        echo "getArtifact_result=$getArtifact_result"
+        RC=$?; 
+        if test "$RC" -eq 0; then 
+            if test "${#getArtifact_result}" -gt 0; then
+                item=$getArtifact_result;
+                echo -e "---\n  Deleting [$artifact] $item...";
+                CMD=$(echo "kubectl delete secret $NAMESPACEARG $SNAME")
+                echo "  Running command [$CMD]"
+                $CMD
+            fi
+        fi    
+    fi
+    echo "---"
+
   if test "${#SNAME}" -eq 0; then
     echo -e $(help "ERROR: No secret name has been provided for this step [$STEP]");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
@@ -203,10 +237,15 @@ elif [ $STEP == "2" ]; then
 
   CMD="kubectl create secret tls $SNAME $NAMESPACEARG --key $KEY_PRIV_DST --cert $KEY_PUB_DST"
   if [ "$VERBOSE" = true ]; then
-    echo -e "  Creating secret tls [$SNAME] using the following command...:
-         \t$CMD"
+    echo -e "  Creating secret tls [$SNAME] using the following command [$CMD]"
   fi
   $CMD
+  RC=$?
+if test "$RC" -ne 0; then 
+    echo -e $(help "Error ($RC) creating the secret [$SNAME]"); 
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+fi;
+
   if [ "$VERBOSE" = true ]; then
     echo "  Secret [$SNAME] should have been created $NAMESPACEDESC Here you have the matching secrets installed at K8s:"
     kubectl get secrets $NAMESPACEARG | grep $SNAME
