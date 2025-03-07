@@ -4,6 +4,7 @@ This folder contains infos to help working with python projects.
 - [Python tools](#python-tools)
   - [Index:](#index)
   - [Install python](#install-python)
+    - [Other References to install python](#other-references-to-install-python)
   - [Create a python environment](#create-a-python-environment)
     - [Launch de environment in the host](#launch-de-environment-in-the-host)
     - [Install an environment file](#install-an-environment-file)
@@ -15,7 +16,36 @@ This folder contains infos to help working with python projects.
   - [Install and setup an environment using Conda](#install-and-setup-an-environment-using-conda)
 
 ## Install python
-https://deepnote.com/app/mauriciojacobo/Instalando-Python-310-en-Ubuntu-63add209-89c0-4cee-b6c1-0db890b6dfbf
+```shell
+PYTHON_VERSION=python3.14
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install $PYTHON_VERSION
+# if this command fails: python --version
+# But not this one python3.14 --version
+# Run the following command
+python --version
+[ $? == 0 ] && echo "python installed. Check if it is latest version" \
+|| sudo apt install python-is-python3;
+python --version 
+# If the python --version does not show the just installed one, you can force it to be linked to the one you decide
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/$PYTHON_VERSION 1
+sudo update-alternatives --config python3
+python --version
+
+# Maybe you also need to install pip
+curl -O https://bootstrap.pypa.io/get-pip.py
+python get-pip.py
+python -m pip install --user --upgrade pip setuptools wheel
+
+# To create venvs, you will need to install it first
+sudo apt install $PYTHON_VERSION-venv
+```
+
+### Other References to install python
+- [Python 3.10](https://deepnote.com/app/mauriciojacobo/Instalando-Python-310-en-Ubuntu-63add209-89c0-4cee-b6c1-0db890b6dfbf)
 
 ## Create a python environment
 To install on the host the required python libraries it is strongly recommended to create a custom env  
@@ -54,17 +84,13 @@ Add a configuration similar to this one to the _.vscode/launch.json_
 {
     "name": "P:RL4WH-API",
     "type": "debugpy",
-    "python": "/python/.envs/reinforcement4learning/bin/python",
+    "python": "<Path2ENVROOTFOLDER>/<Path2ENVNAME>/bin/python",
     "request": "launch",
-    "program": "/projects/Reinforcement_learning_4_ware_houses/api/src/main/python/OPPy/main.py",
+    "program": "<Path2PythonFileToBeDebugged.py>",
     "console": "integratedTerminal",
     "env": {
-        "PYTHONPATHS": "/projects/Reinforcement_learning_4_ware_houses/api/src/main/python",
-        "PROJECTNAME": "Reinforcement Learning 4 WareHouses API",
-        "LOGSPATH": "./logs",
-        "LOGLEVEL": "INFO",
-        "PATH_2ROOT"="/projects/Reinforcement_learning_4_ware_houses/api/src/main/python"
-        "PATH_2MODELS"="/projects/Reinforcement_learning_4_ware_houses/api/src/main/models"
+        "PYTHONPATHS": "<Path2BaseFolderOfThePythonFiles>",
+        "OTHERENVVARS>": "<THEIRVALUES>"
     }
 }
 ```
