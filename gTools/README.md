@@ -1,8 +1,9 @@
 # git Tools
 This folder contains scripts to ease certain operations on the git environment.
 - [git Tools](#git-tools)
-  - [Creating a git keypair certificate](#creating-a-git-keypair-certificate)
-  - [Commit with comments](#commit-with-comments)
+  - [Setup GIT with SSH to use SSH keys](#setup-git-with-ssh-to-use-ssh-keys)
+    - [Ubuntu](#ubuntu)
+    - [Windows](#windows)
   - [Freeze a file](#freeze-a-file)
     - [Changing branch with skipped files involved](#changing-branch-with-skipped-files-involved)
   - [Git: Delete a branch local and remote](#git-delete-a-branch-local-and-remote)
@@ -11,69 +12,131 @@ This folder contains scripts to ease certain operations on the git environment.
   - [Github: Merge using git rebase](#github-merge-using-git-rebase)
   - [Github: Delete a tag and upgrade it to a later commit](#github-delete-a-tag-and-upgrade-it-to-a-later-commit)
 
-## Creating a git keypair certificate
-If the remote URL is a **git@** ref. you will be required to have a git keypair certificate setup (the symptom is that you will be asked for the git password that does not match the user password). You will have to add hence a keypair certificate to your machine to connect to the git.  
-Execute the following steps at an Ubuntu machine in which the git has to be cloned (For windows environments see the [presentation de metología del dpto ITA BDSC -git sin passwords-](https://feditmpsa.sharepoint.com/:p:/s/TD_BD_Sistemas_Cognitivos2/EUsBoj-0XsBFjQ5AVnV5UJABpygh1x9vMnwkAfGIddkt_Q?e=55cl18)):  
-1. If your remote URL is still a **http://...git** ref and you want to replace it by its **git@...git*** remote URL:
-  ```shell
-  git remote -v # To view the remote URL
-  origin  https://github.com/cgonzalezITA/devopsTools.git (fetch)
-  origin  https://github.com/cgonzalezITA/devopsTools.git (push)
-  git remote set-url origin git@github.com/cgonzalezITA/devopsTools.git
-  ```
-2. (Linux & Windows) Generate the certificate
-```shell
-KEY_NAME=ed25519
-EMAIL=<yourEmail>
-ssh-keygen -t ed25519 -C $EMAIL -f ~/.ssh/$KEY_NAME
-# OR
-ssh-keygen -o -t rsa -C $EMAIL -f ~/.ssh/$KEY_NAME
-```
+## Setup GIT with SSH to use SSH keys
+If the reference of the GIT to be used is a **git@** ref., you will be required to create and register a SSH certificate at the machine connecting to the git.  
+### Ubuntu
+Execute the following steps at an Ubuntu terminal:
+1. Generate the certificate
+    ```shell
+    KEY_NAME=ed25519
+    EMAIL=<yourEmail>
+    ssh-keygen -t ed25519 -C $EMAIL -f ~/.ssh/$KEY_NAME
+    # OR
+    ssh-keygen -o -t rsa -C $EMAIL -f ~/.ssh/$KEY_NAME
+    ```
 
-1. Copy the public certificate to the SSH Keys page of your git server (here you have the links to some of the ssh management pages):  
-- **[git.itainnova.es](https://git.itainnova.es/-/user_settings/ssh_keys)**
-- [github](https://github.com/settings/keys)
-- ...
-```shell
-# (Linux) To extract the public key run -replacing the key file <id_$KEY_NAME.pub> by the generated one at step 1):      
-cat ~/.ssh/$KEY_NAME.pub
-# Output must be something similar to:
-ssh-$KEY_NAME AAAAC3...olVN your_email@example.com
-```
+2. Create a new SSH key at the SSH Keys page of your git server (here you have the links to some of the ssh management pages):  
+   - **[git.\<YOURORGANIZATION\>.es](https://git.<YOURORGANIZATION>.es/-/user_settings/ssh_keys)**
+   - [github](https://github.com/settings/keys)
+   - ...  
 
-1. (Linux & Windows) Add the private key to the authorizes_keys in your working machine (the key file <id_$KEY_NAME.pub> should be replaced by the just generated one):
-```script
-ssh-add ~/.ssh/$KEY_NAME  
-```
+    The new SSH form asks for the Key that is the content of the public certificate generated at step 1. To extract its content run:
+    ```shell
+    cat ~/.ssh/$KEY_NAME.pub
+    # Output must be something similar to:
+    ssh-ed25519 AAAAC3...olVN your_email@example.com
+    ```
+    Provide a title, a Usage type (default would sufice for normal git operations (Authentication & signing or Authentication key)) and at some git engines, the expiration date.
 
-If an error appears, you may need to activate the ssh-agent service:
+3. Add the private key to the authorized_keys at your ubuntu machine:
+    ```shell
+    ssh-add ~/.ssh/$KEY_NAME  
+    ```
 
-```script
-eval `ssh-agent -s`
-```
+    If an error appears, you may need to activate the ssh-agent service:
+    ```shell
+    eval `ssh-agent -s`
+    ```
 
-**NOTE**: Keypair generation for windows is fully described at [presentation de metología del dpto ITA BDSC -git sin passwords-](https://feditmpsa.sharepoint.com/:p:/s/TD_BD_Sistemas_Cognitivos2/EUsBoj-0XsBFjQ5AVnV5UJABpygh1x9vMnwkAfGIddkt_Q?e=55cl18) including Windows setup and snapshots.  
+4. Automatize the registration of the private key.  
+Presious steps need to be added to the user **~/.bashrc** file to register the keys on each new terminal session (CLI session) created.
+    ```shell
+    vi ~/.bashrc
+    # At the end of the file add the lines to start the agent and to register the keys:
+      ...
+      # Custom initialization
+      eval `ssh-agent -s` > /dev/null
+      echo Adding certificates to the ssh-agent...
+      ssh-add ~/.ssh/id_$KEY_NAME-key1
+      ...
+      ssh-add ~/.ssh/id_$KEY_NAME-keyN
+    ```
+5. Finally you can start working with your git repository using a git@ ref.
+    ```shell
+    git clone git@....git
+    git remote set-url origin git@....git
+    ```
+### Windows
+Execute the following steps at a Windows powershell terminal:
+1. Generate the certificate
+    ```shell
+    $env:KEY_NAME="ed25519"
+    $env:EMAIL="<yourEmail>"
+    ssh-keygen -t ed25519 -C "$env:EMAIL" -f "$HOME/.ssh/$env:KEY_NAME"
+    # OR
+    ssh-keygen -o -t rsa -C $EMAIL -f ~/.ssh/$KEY_NAME
+    ```
 
-4. Automatize the registration of the private keys  
-Presious steps need to be added to the user **~/.bashrc** file to register the keys on each new terminal session (CLI session)
-```shell
-vi ~/.bashrc
-# At the end of the file add the lines to start the agent and to register the keys:
-  ...
-  # Custom initialization
-  eval `ssh-agent -s` > /dev/null
-  echo Adding certificates to the ssh-agent...
-  ssh-add ~/.ssh/id_$KEY_NAME-key1
-  ...
-  ssh-add ~/.ssh/id_$KEY_NAME-keyN
-```
+2. Create a new SSH key at the SSH Keys page of your git server (here you have the links to some of the ssh management pages):  
+   - **[git.\<YOURORGANIZATION\>.es](https://git.<YOURORGANIZATION>.es/-/user_settings/ssh_keys)**
+   - [github](https://github.com/settings/keys)
+   - ...  
 
-## Commit with comments
-To simplify the commit, after all the changes have been added, just execute the command:
-```shell
-# USAGE: gCommit.sh [-h] [-s <submodulePath>] <comment1 (with quotes ")> [<comment2 (with quotes ")>]
-```
+    The new SSH form asks for the Key that is the content of the public certificate generated at step 1. To extract its content run:
+    ```shell
+    cat $HOME/.ssh/$env:KEY_NAME.pub
+    # Output must be something similar to:
+    ssh-ed25519 AAAAC3...olVN your_email@example.com
+    ```
 
+    Provide a title, a Usage type (default would sufice for normal git operations (Authentication & signing or Authentication key)) and at some git engines, the expiration date.
+
+3. Add the private key to the authorized_keys at your ubuntu machine:
+    ```shell
+    $env:CERT_FILE="$HOME/.ssh/$env:KEY_NAME"
+    ssh-agent $env:CERT_FILE
+      # The correct message should be something similar to:​
+      Identity added: .$env:CERT_FILE​
+    ```
+4. Finally you can start working with your git repository using a git@ ref.
+    ```shell
+    git clone git@....git
+    git remote set-url origin git@....git
+    ```
+    #### Potential errors
+  - On Windows, the service `OpenSSH Authentication Agent` must be enabled:  
+    ```shell
+    #check the service status​
+    Get-Service -Name ssh-agent​
+      Status   Name               DisplayName​
+      ------   ----               -----------​
+      Running  ssh-agent          OpenSSH Authentication Agent​
+    ```
+    
+    If the agent is not running it has to be set to automatically start (next operation requires elevated permissions):
+    
+    ```shell
+    #To set its start as automatic (requires admin permission):​
+    Get-Service -Name ssh-agent | Set-Service -StartupType Automatic​
+    ```
+
+    ```shell
+    #To verify the service 'OpenSSH Authentication Agent' status from the Windows service application look for it at the:
+    services.msc​
+    ```
+  - Errors regarding the permissions granted to the ssh key files.  
+    ```shell
+    # Permissions for $env:CERT_FILE are too open
+    cd $env:USERPROFILE\.ssh ​
+    icacls $env:CERT_FILE /inheritance:r​
+    icacls $env:CERT_FILE /grant:r "$env:USERNAME:(F)“ #if it fails, replace $env:USERNAME by its value e.g. cgonzalez​
+    icacls $env:CERT_FILE /remove "Administrators" "SYSTEM" "Users“​
+    icacls $env:CERT_FILE ​
+    # Rerun the step 3
+    ssh-agent $env:CERT_FILE
+      # The correct message should be something similar to:​
+      Identity added: .$env:CERT_FILE​
+    ```
 ## Freeze a file
 The gTools/gFreeze.sh command implements this behaviour.  
 See [this article from medium](https://medium.com/@adi.ashour/dont-git-angry-skip-in-worktree-e9c77dec9d15), [git assume unchanged skip worktree](https://www.baeldung.com/ops/git-assume-unchanged-skip-worktree)  
