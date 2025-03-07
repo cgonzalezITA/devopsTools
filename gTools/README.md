@@ -57,9 +57,9 @@ Presious steps need to be added to the user **~/.bashrc** file to register the k
       # Custom initialization
       eval `ssh-agent -s` > /dev/null
       echo Adding certificates to the ssh-agent...
-      ssh-add ~/.ssh/id_$KEY_NAME-key1
+      ssh-add ~/.ssh/<SSHFile-1>
       ...
-      ssh-add ~/.ssh/id_$KEY_NAME-keyN
+      ssh-add ~/.ssh/<SSHFile-N>
     ```
 5. Finally you can start working with your git repository using a git@ ref.
     ```shell
