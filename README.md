@@ -26,8 +26,7 @@ The script [deployDevopTools.sh](./quickDeployment/deployDevopTools.sh) automati
 
 Most of the content of this project are scripts, so execution permission must be granted to them:
 ```shell
-cd <devopsToolsFolder>
-find devopTools -name "*.sh" -type f -exec chmod +x {} +
+find devopsTools -name "*.sh" -type f -exec chmod +x {} +
 ```
 
 To ease the access to the scripts, several approaches can be taken. The best one is to give access to scripts via the alias ubuntu feature. This aproach speeds up the writting of the commands.  
