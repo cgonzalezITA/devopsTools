@@ -96,6 +96,28 @@ EOF
     else
         echo ✅🆗
     fi
+
+    # Installs helm
+    if ! command -v helm &> /dev/null; then
+        echo "❌ Helm not found. Installing..."
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    fi
+    if command -v helm &> /dev/null; then
+        echo "✅🆗 Helm is already installed: $(helm version --short)"
+    else
+        echo "❌ Helm could not be installed"
+    fi
+
+    if ! command -v kubectl &> /dev/null; then
+        echo "❌ kubectl not found. Installing latest version..."
+        
+        curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+    fi
+    if ! command -v kubectl &> /dev/null; then
+        echo "✅🆗 kubectl is already installed: $(kubectl version --client --short)"
+    fi
 }
 
 #---------------------------------------------- main program ------------------------
