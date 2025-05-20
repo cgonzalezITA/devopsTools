@@ -118,9 +118,11 @@ Execute the following steps at a Windows powershell terminal:
 3. Add the private key to the authorized_keys at your ubuntu machine:
     ```shell
     $env:CERT_FILE="$HOME/.ssh/$env:KEY_NAME"
-    ssh-agent $env:CERT_FILE
+    ssh-add $env:CERT_FILE
       # The correct message should be something similar to:​
-      Identity added: .$env:CERT_FILE​
+      Identity added: <Full path to the .$env:CERT_FILE​>
+    # Verify the identity has been added
+    ssh-add -L 
     ```
 4. Finally you can start working with your git repository using a git@ ref.
     ```shell
@@ -140,7 +142,7 @@ Execute the following steps at a Windows powershell terminal:
     If the agent is not running it has to be set to automatically start (next operation requires elevated permissions):
     
     ```shell
-    #To set its start as automatic (requires admin permission):​
+    #To set its start as automatic (This step requires admin permission):​
     Get-Service -Name ssh-agent | Set-Service -StartupType Automatic​
     ```
 
@@ -157,7 +159,7 @@ Execute the following steps at a Windows powershell terminal:
     icacls $env:CERT_FILE /remove "Administrators" "SYSTEM" "Users“​
     icacls $env:CERT_FILE ​
     # Rerun the step 3
-    ssh-agent $env:CERT_FILE
+    ssh-add $env:CERT_FILE
       # The correct message should be something similar to:​
       Identity added: .$env:CERT_FILE​
     ```
