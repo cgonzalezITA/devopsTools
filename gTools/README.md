@@ -94,7 +94,7 @@ Execute the following steps at a Windows powershell terminal:
 3. Add the private key to the authorized_keys at your ubuntu machine:
     ```shell
     $env:CERT_FILE="$HOME/.ssh/$env:KEY_NAME"
-    ssh-agent $env:CERT_FILE
+    ssh-add $env:CERT_FILE
       # The correct message should be something similar to:​
       Identity added: .$env:CERT_FILE​
     ```
@@ -117,7 +117,8 @@ Execute the following steps at a Windows powershell terminal:
     
     ```shell
     #To set its start as automatic (requires admin permission):​
-    Get-Service -Name ssh-agent | Set-Service -StartupType Automatic​
+    Get-Service -Name ssh-agent | Set-Service -StartupType "Automatic​"
+    Start-Service -Name "ssh-agent"
     ```
 
     ```shell
