@@ -61,9 +61,14 @@ Presious steps need to be added to the user **~/.bashrc** file to register the k
       ...
       ssh-add ~/.ssh/<SSHFile-N>
     ```
-5. Finally you can start working with your git repository using a git@ ref.
+5. Finally you can start working with your git repository using a git@ ref if the https ref. is still used.
     ```shell
+    # If repo is has not been cloned yet, use the git@ ref.
     git clone git@....git
+    
+    # If it is already cloned, check that the origin ref. is correct (git@)
+    git remote -v
+    # If the ref. is a https ref., replace it by the git@ equivalent one    
     git remote set-url origin git@....git
     ```
 

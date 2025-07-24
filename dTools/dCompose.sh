@@ -222,7 +222,7 @@ fi
 [[ "${#PROJECTDIR}" -gt 0 ]] && PROJECTDIR="--project-directory \"$PROJECTDIR\"";
 [[ "$COMMAND" =~ ^(debug|info)$ ]] && COMMAND="info";
 
-CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $PROJECTDIR config --services"
+CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR config --services"
 SERVICES=$(eval $CMD)
 RC=$?; 
 if test "$RC" -ne 0; then 
