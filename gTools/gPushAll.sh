@@ -170,7 +170,7 @@ for dir in . */; do
         
 
     else
-        echo "INFO: No pending commits detected at $GITNAME (branch $BRANCHNAME)" | GREP_COLOR="1;32" egrep  --color=always "INFO"
+        echo "INFO: No pending commits detected at $GITNAME (branch $BRANCHNAME)" | GREP_COLOR="mt=1;32" egrep  --color=always "INFO"
     fi
     echo -e '---'
   fi

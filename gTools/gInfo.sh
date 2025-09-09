@@ -174,7 +174,7 @@ LABEL="Existing branches"
 CMD="git branch -vva"
 echo -e "- $LABEL:" | egrep --color=auto  "$LABEL" 
 if [ "$VERBOSE" = true ]; then
-    echo "NOTE: If you still see non existing branches, just run 'git remote prune origin' to get rid of them" | GREP_COLOR="1;32" egrep  --color=always "NOTE"
+    echo "NOTE: If you still see non existing branches, just run 'git remote prune origin' to get rid of them" | GREP_COLOR="mt=1;32" egrep  --color=always "NOTE"
 fi
 $CMD
 if [ "$VERBOSE" = true ]; then
