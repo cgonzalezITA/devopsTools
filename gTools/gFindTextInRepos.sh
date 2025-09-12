@@ -102,7 +102,7 @@ fi
 
 # Generate timestamp and folder name
 TIMESTAMP=$(date +"%y%m%d-%H%M%S")
-WORKING_DIR="${WORKING_DIR_BASE}/${TIMESTAMP}_gFindTextInRepos"
+WORKING_DIR="${WORKING_DIR_BASE}/gFindTextInRepos_${TIMESTAMP}"
 PROJECTS_FILE="$WORKING_DIR/projects.json"
 if [ "$VERBOSE" = true ]; then
     echo -e "Searching repositories at $GIT_REPO for text '$TEXT2FIND' with parameters" # >> ${OUTPUTFILE:-/dev/stdout}; 
@@ -203,12 +203,8 @@ while read -r entry; do
         
         if [ "$NUM_FINDINGS" -gt 0 ]; then
             MSG2="$NUM_FINDINGS/$NUM_FINDINGS_TOTAL found at '$name:$branch'"
-            echo  "  $MSG2: [$FINDINGS]";
+            echo -e "  $MSG2: [$FINDINGS]\n  '$name:$branch' Kept at $BRANCH_FOLDER";
 
-            # if [ "$OUTPUTFILE" != "" ]; then            
-            #     echo  -e "$MSG\n$MSG2: $FINDINGS" >> ${OUTPUTFILE};
-            # fi       
-        
             if [ "$FOUND" = false ]; then
                 NUM_REPOS_WITHSTRING_TOTAL=$((NUM_REPOS_WITHSTRING_TOTAL+1))
                 # echo "  Total repositories with findings: $NUM_REPOS_WITHSTRING_TOTAL vs $STOPAFTER_REPOSWITHTEXT";
