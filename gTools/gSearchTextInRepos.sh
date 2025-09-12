@@ -17,9 +17,14 @@ BASEDIR=$(dirname "$SCRIPTNAME")
 CURRDIR=$(pwd)
 # \t-v: Do not show verbose info                                                                        \n
 VERBOSE=true
+# \t-keep|--keepreposwithoutstring: Keeps the repositories that do not contain the text to find (def. false) \n
+KEEPREPOSWITHOUTSTRING=false
 # \t[-j1b|just1branch]: Just 1 branch with text is required. Other branches of same repository will not be analyzed (def. false) \n
 JUST1BRANCH=false
-GIT_REPO=gitlab.ita.es
+# \t-g <git_repository>: dns of the git repo. eg. github.com. If it is missing, the search will take place on
+# \t                     the git subfolders found at the WORKING_DIR provided \n
+GIT_REPO='' # gitlab.ita.es
+# \t[-pat|--personalaccesstoken]: Git personal access token with permissions: api\n
 PAT=''
 TEXT2FIND=''
 WORKING_DIR_BASE=/tmp
@@ -35,14 +40,16 @@ function help() {
         HELP="${1}\n"     
     fi
     # \t[-o|--output] <outputFile>: Writes the results into the <outputFile> \n
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <PERSONAL_ACCESS_TOKEN> <TextToFind> \n 
+    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <TextToFind> \n 
             \t-h: Show help info \n
             \t-v: Do not show verbose info\n
             \t-w|--working-dir <WORKING_DIR_BASE>: Working dir (def value: /tmp) with proper permissions\n
-            \t-g <git_repository>: dns of the git repo. eg. github.com \n
+            \t-g <git_repository>: dns of the git repo. eg. github.com. If it is missing, the search will take place on \n
+            \t   the git subfolders found at the WORKING_DIR provided \n
             \t[-sa|--stopafter] <numReposWithText>: Stops crawling repositories after <numReposWithText> have been found\n
+            \t-keep|--keepreposwithoutstring: Keeps the repositories that do not contain the text to find (def. false) \n
             \t[-j1b|just1branch]: Just 1 branch with text is required. Other branches of same repository will not be analyzed (def. true) \n
-            \tPERSONAL_ACCESS_TOKEN: Git account's personal access token with permissions: api\n
+            \t[-pat|--personalaccesstoken]: Git personal access token with permissions: api. Only required when GIT_REPO is provided\n
             \tTextToFind: Text to find in the repositories \n"
     echo $HELP
 }
@@ -72,6 +79,14 @@ while true; do
         -sa | --stopafter )
             STOPAFTER_REPOSWITHTEXT=$2; 
             shift; shift ;;
+        -keep | --keepreposwithoutstring )
+        # \t-keep|--keepreposwithoutstring: Keeps the repositories that do not contain the text to find (def. false) \n
+            KEEPREPOSWITHOUTSTRING=true; 
+            shift ;;
+        -pat | --personalaccesstoken )
+        # \t[-pat|--personalaccesstoken]: Git personal access token with permissions: api\n
+            PAT=$2;
+            shift; shift ;;
         -j1b | --just1branch )
             JUST1BRANCH=true; 
             shift ;;
@@ -82,8 +97,6 @@ while true; do
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            elif test "${#PAT}" -eq 0; then
-                    PAT=$1
             elif test "${#TEXT2FIND}" -eq 0; then
                     TEXT2FIND=$1
             fi ;
@@ -92,7 +105,7 @@ while true; do
 done
 
 
-if test "${#PAT}" -eq 0; then
+if test "${#GIT_REPO}" -gt 0 && test "${#PAT}" -eq 0; then
     echo -e $(help "ERROR: a PERSONAL_ACCESS_TOKEN is required"); 
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 elif test "${#TEXT2FIND}" -eq 0; then
@@ -101,19 +114,33 @@ elif test "${#TEXT2FIND}" -eq 0; then
 fi
 
 # Generate timestamp and folder name
-TIMESTAMP=$(date +"%y%m%d-%H%M%S")
-WORKING_DIR="${WORKING_DIR_BASE}/gFindTextInRepos_${TIMESTAMP}"
+
+if test "${#GIT_REPO}" -gt 0; then
+    TIMESTAMP=$(date +"%y%m%d-%H%M%S")
+    WORKING_DIR="${WORKING_DIR_BASE}/gSearchTextInRepos_${TIMESTAMP}"
+else
+    WORKING_DIR="$WORKING_DIR_BASE"
+    JUST1BRANCH=false
+    KEEPREPOSWITHOUTSTRING=true
+fi
+
 PROJECTS_FILE="$WORKING_DIR/projects.json"
 if [ "$VERBOSE" = true ]; then
-    echo -e "Searching repositories at $GIT_REPO for text '$TEXT2FIND' with parameters" # >> ${OUTPUTFILE:-/dev/stdout}; 
+    if test "${#GIT_REPO}" -gt 0; then
+        echo -e "Searching repositories at $GIT_REPO for text '$TEXT2FIND' with parameters:" # >> ${OUTPUTFILE:-/dev/stdout}; 
+    else
+        echo -e "Searching repositories in $WORKING_DIR with text '$TEXT2FIND' with parameters:" # >> ${OUTPUTFILE:-/dev/stdout}; 
+    fi
     echo -e "--------------------"            # >> ${OUTPUTFILE:-/dev/stdout}; 
-    echo "VERBOSE=[$VERBOSE]"                 # >> ${OUTPUTFILE:-/dev/stdout}; 
-    echo "WORKING_DIR_BASE=$WORKING_DIR_BASE" # >> ${OUTPUTFILE:-/dev/stdout}; 
-    echo "WORKING_DIR=$WORKING_DIR"           # >> ${OUTPUTFILE:-/dev/stdout}; 
-    echo "GIT_REPO=$GIT_REPO"                 # >> ${OUTPUTFILE:-/dev/stdout}; 
-    echo "STOPAFTER_REPOSWITHTEXT=$STOPAFTER_REPOSWITHTEXT" # >> ${OUTPUTFILE:-/dev/stdout};
-    echo "JUST1BRANCHREQUIRED=[$JUST1BRANCH]" # >> ${OUTPUTFILE:-/dev/stdout};
-    echo "TEXT2FIND=[$TEXT2FIND]"             # >> ${OUTPUTFILE:-/dev/stdout};
+    echo "VERBOSE= $VERBOSE"                 # >> ${OUTPUTFILE:-/dev/stdout}; 
+    echo "WORKING_DIR_BASE= $WORKING_DIR_BASE" # >> ${OUTPUTFILE:-/dev/stdout}; 
+    echo "WORKING_DIR= $WORKING_DIR"           # >> ${OUTPUTFILE:-/dev/stdout}; 
+    echo "PROJECTS_FILE= $PROJECTS_FILE"   # >> ${OUTPUTFILE:-/dev/stdout};  
+    echo "GIT_REPO= $GIT_REPO"                 # >> ${OUTPUTFILE:-/dev/stdout}; 
+    echo "STOPAFTER_REPOSWITHTEXT= $STOPAFTER_REPOSWITHTEXT" # >> ${OUTPUTFILE:-/dev/stdout};
+    echo "JUST1BRANCHREQUIRED= $JUST1BRANCH" # >> ${OUTPUTFILE:-/dev/stdout};
+    echo "KEEPREPOSWITHOUTSTRING= $KEEPREPOSWITHOUTSTRING" # >> ${OUTPUTFILE:-/dev/stdout};
+    echo "TEXT2FIND= [$TEXT2FIND]"             # >> ${OUTPUTFILE:-/dev/stdout};
     echo -e "--------------------\n"          # >> ${OUTPUTFILE:-/dev/stdout};
 fi
 
@@ -122,60 +149,77 @@ fi
 # if [ "$VERBOSE" = true ]; then
 #     echo "Creating working dir $WORKING_DIR"
 # fi
-mkdir -p "$WORKING_DIR"
+if test "${#GIT_REPO}" -eq 0; then
+    if [ ! -f "$PROJECTS_FILE" ]; then
+        echo "ERROR: As the GIT_REPO was not provided, the PROJECTS_FILE $PROJECTS_FILE must exist containing info about the git repositories"
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    else
+        COUNT_REPOS=0;
+        while read -r entry; do
+            path=$(echo "$entry" | jq -r '.path')
+            REPO_FOLDER="$WORKING_DIR/$path"
+            if [ -d "$REPO_FOLDER" ]; then
+                COUNT_REPOS=$((COUNT_REPOS+1))
+            fi
+        done < <(jq -c '.[]' "$PROJECTS_FILE")
+    fi
+else
+    mkdir -p "$WORKING_DIR"
+    HEADERS="--header \"PRIVATE-TOKEN:${PAT}\" "
 
-HEADERS="--header \"PRIVATE-TOKEN:${PAT}\" "
+    # List all projects
+    CMD="curl -s https://$GIT_REPO/api/v4/projects?per_page=1000 --header \"PRIVATE-TOKEN:<PAT>\" | jq '.[] | {name, path_with_namespace, http_url_to_repo, created_at, updated_at}'"
+    
+    CMD="curl -s https://$GIT_REPO/api/v4/projects?per_page=1000 $HEADERS \
+        | jq '.[] | {name, path, path_with_namespace, http_url_to_repo, created_at, updated_at}'"
+    # if [ "$VERBOSE" = true ]; then
+    #     echo "Running CMD=$CMD > $PROJECTS_FILE"
+    # fi
+    eval $CMD > "$PROJECTS_FILE"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Command failed"
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    fi
 
-# List all projects
-CMD="curl -s https://$GIT_REPO/api/v4/projects?per_page=1000 --header \"PRIVATE-TOKEN:<PAT>\" | jq '.[] | {name, path_with_namespace, http_url_to_repo, created_at, updated_at}'"
-# if [ "$VERBOSE" = true ]; then
-#     echo "Running CMD=$CMD > $PROJECTS_FILE"
-# fi
-CMD="curl -s https://$GIT_REPO/api/v4/projects?per_page=1000 $HEADERS \
-    | jq '.[] | {name, path, path_with_namespace, http_url_to_repo, created_at, updated_at}'"
-eval $CMD > "$PROJECTS_FILE"
-if [ $? -ne 0 ]; then
-    echo "ERROR: Command failed"
-    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    eval jq -s . "$PROJECTS_FILE" > "${PROJECTS_FILE}2"
+    eval mv "${PROJECTS_FILE}2" "$PROJECTS_FILE"
+    COUNT_REPOS=$(jq length $PROJECTS_FILE)
 fi
 
-eval jq -s . "$PROJECTS_FILE" > "${PROJECTS_FILE}2"
-eval mv "${PROJECTS_FILE}2" "$PROJECTS_FILE"
 
-COUNT_REPOS=$(jq length $PROJECTS_FILE)
 IDX_REPO=0
 NUM_REPOS_WITHSTRING_TOTAL=0
 NUM_FINDINGS=0
 NUM_FINDINGS_TOTAL=0
 
-if [ "$VERBOSE" = true ]; then
-    echo -e "File '${PROJECTS_FILE}' created with the list of git projects at $GIT_REPO ($COUNT_REPOS)\n"
+if test "${#GIT_REPO}" -gt 0; then
+    if [ "$VERBOSE" = true ]; then
+        echo -e "File '${PROJECTS_FILE}' created with the list of git projects at $GIT_REPO ($COUNT_REPOS)\n"
+    fi
 fi
 
 # jq -c '.[]' "$PROJECTS_FILE" | while read -r entry; do
 while read -r entry; do
     name=$(echo "$entry" | jq -r '.name')
     path=$(echo "$entry" | jq -r '.path')
-    url=$(echo "$entry" | jq -r '.http_url_to_repo')
-    url_with_pat=$(echo "$url" | sed "s#://$GIT_REPO#://oauth2:${PAT}@${GIT_REPO}#")
-    
     IDX_REPO=$((IDX_REPO+1))   
-    
-    # CMD="git clone --quiet $url_with_pat $REPO_FOLDER"
-    # if [ "$VERBOSE" = true ]; then
-    #     echo "Running CMD=$CMD"
-    # fi
-    # eval $CMD
-    # if [ $? -ne 0 ]; then
-    #     echo "ERROR: Cloning repo $name($url) failed"
-    # fi
-    # cd $REPO_FOLDER
-    FOUND=false
     REPO_FOLDER="$WORKING_DIR/$path"
-    mkdir -p "$REPO_FOLDER"
-    # For each branch in the repo
-    # git ls-remote --heads "$url_with_pat" | while read -r _ ref; do
-    mapfile -t BRANCHES < <(git ls-remote --heads "$url_with_pat" | awk '{print $2}' | sed 's#refs/heads/##')
+    FOUND=false
+    
+    if test "${#GIT_REPO}" -gt 0; then
+        url=$(echo "$entry" | jq -r '.http_url_to_repo')
+        url_with_pat=$(echo "$url" | sed "s#://$GIT_REPO#://oauth2:${PAT}@${GIT_REPO}#")    
+        mkdir -p "$REPO_FOLDER"
+        # For each branch in the repo
+        # git ls-remote --heads "$url_with_pat" | while read -r _ ref; do
+        mapfile -t BRANCHES < <(git ls-remote --heads "$url_with_pat" | awk '{print $2}' | sed 's#refs/heads/##')
+    else
+        if [ ! -d "$REPO_FOLDER" ]; then
+            continue;
+        fi
+        BRANCHES=$(ls -1A "$REPO_FOLDER")
+    fi
+
     MSG="- Searching for '$TEXT2FIND' in repo $IDX_REPO/$COUNT_REPOS '$name'; branches: [$(IFS=,; echo "${BRANCHES[*]}"; unset IFS)]' ($url)"
     if [ "$VERBOSE" = true ]; then
         echo  "$MSG";
@@ -183,16 +227,15 @@ while read -r entry; do
     
     for branch in "${BRANCHES[@]}"; do
         BRANCH_FOLDER="$WORKING_DIR/$path/$branch"
-        if [ -d "$BRANCH_FOLDER" ]; then
-            rm -rf $BRANCH_FOLDER
-        fi
-        CMD="git clone --single-branch --branch $branch --quiet $url_with_pat $BRANCH_FOLDER"
-        # if [ "$VERBOSE" = true ]; then
-        #     echo "Running CMD=$CMD"
-        # fi
-        eval $CMD
-        if [ $? -ne 0 ]; then
-            echo "ERROR: Cloning repo $name:$branch($url) at $BRANCH_FOLDER failed"
+        if test "${#GIT_REPO}" -gt 0; then
+            CMD="git clone --single-branch --branch $branch --quiet $url_with_pat $BRANCH_FOLDER"
+            # if [ "$VERBOSE" = true ]; then
+            #     echo "Running CMD=$CMD"
+            # fi
+            eval $CMD
+            if [ $? -ne 0 ]; then
+                echo "ERROR: Cloning repo $name:$branch($url) at $BRANCH_FOLDER failed"
+            fi
         fi
 
         cd $BRANCH_FOLDER
@@ -213,7 +256,7 @@ while read -r entry; do
             if [ "$JUST1BRANCH" = true ]; then
               break
             fi
-        else
+        elif [ "$KEEPREPOSWITHOUTSTRING" = false ]; then
             rm -rf $BRANCH_FOLDER
         fi
     done
@@ -231,7 +274,13 @@ while read -r entry; do
 # done
 done < <(jq -c '.[]' "$PROJECTS_FILE")
 
-MSG="\n----------------------\nFinal summary: $NUM_FINDINGS_TOTAL files found with string '$TEXT2FIND' in $NUM_REPOS_WITHSTRING_TOTAL/$IDX_REPO repositories at '$GIT_REPO'"
+MSG="\n----------------------\nFinal summary: $NUM_FINDINGS_TOTAL files found with string '$TEXT2FIND' in $NUM_REPOS_WITHSTRING_TOTAL/$IDX_REPO repositories at "
+if test "${#GIT_REPO}" -gt 0; then
+    MSG="$MSG git '$GIT_REPO'"
+else 
+    MSG="$MSG folder '$WORKING_DIR'"
+fi
+
 echo -e $MSG
 # if [ "$OUTPUTFILE" != "" ]; then          
 #     echo $MSG >> ${OUTPUTFILE:-/dev/stdout}; 
