@@ -140,18 +140,22 @@ while true; do
 done
 
 [[ "${#COMMAND}" -eq 0 ]] && COMMAND="up";
-
-if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]]
+if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]];
 then
-    # echo "value not found: $PROVIDEDPARAMS"
-# Swapping is done between COMMAND AND SERVICENAME
-    if [[ "$PROVIDEDPARAMS" -le 1 ]]; then
-        SERVICENAME=$COMMAND
-        COMMAND=up
-    else
+    if test "${#SERVICENAME}" -ne 0; then
+        # Swapping is done between COMMAND AND SERVICENAME
         TMP=$SERVICENAME
         SERVICENAME=$COMMAND
         COMMAND=$TMP
+        if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]];
+        then
+            COMMAND=$SERVICENAME
+            SERVICENAME=$TMP
+        fi
+    fi
+    if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]]; then
+        echo -e $(help "ERROR: Command [$COMMAND] must be one of [$COMMANDSAVAILABLE]");
+        if [ "$CALLMODE" == "executed" ]; then exit 1; else return 1; fi
     fi
 fi
 
@@ -174,23 +178,6 @@ if [ "$USEDFCLUE" = true ]; then
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
 fi
-
-if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]]
-then
-#    echo "value not found: $PROVIDEDPARAMS"
-# Swapping is done between COMMAND AND SERVICENAME
-    if [[ "$PROVIDEDPARAMS" -le 1 ]]; then
-        SERVICENAME=$COMMAND
-        COMMAND=up
-    else
-        TMP=$SERVICENAME
-        SERVICENAME=$COMMAND
-        COMMAND=$TMP
-    fi
-fi
-
-
-
 
 # Code
 # echo "DOCKERCOMPOSE_CMD=$DOCKERCOMPOSE_CMD"
@@ -226,7 +213,7 @@ CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR
 SERVICES=$(eval $CMD)
 RC=$?; 
 if test "$RC" -ne 0; then 
-    [ "$VERBOSE" = true ] && echo -e "---\nRunning command1 [${CMD}]"
+    echo -e "---\nError running command1 [${CMD}]"
     echo -e $(help "ERROR: Docker compose services retrieval returned error $RC")
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
