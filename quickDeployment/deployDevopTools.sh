@@ -71,7 +71,10 @@ alias _kGetArtifact='\$_TOOLSFOLDER/kTools/_kGetArtifact.sh'
 alias kSecret-createGeneric='\$_TOOLSFOLDER/kTools/kSecret-createGeneric.sh'
 alias kRemoveRestart='\$_TOOLSFOLDER/kTools/kRemoveRestart.sh'
 alias hFileCommand='\$_TOOLSFOLDER/hTools/hFileCommand.sh'
-
+pEnvironment() {
+  # Defined as function to keep the actions run on the shell
+    . "$_TOOLSFOLDER/pTools/pEnvironment.sh"  "$@"
+}
 EOF
         $(readAnswer "Review the ~/.bash_aliases file to check the content is not duplicated nor contains errors.\n\
         Press a key to continue" '' 15 false false);        

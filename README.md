@@ -73,6 +73,10 @@ alias _kGetArtifact='$_TOOLSFOLDER/kTools/_kGetArtifact.sh'
 alias kSecret-createGeneric='$_TOOLSFOLDER/kTools/kSecret-createGeneric.sh'
 alias kRemoveRestart='$_TOOLSFOLDER/kTools/kRemoveRestart.sh'
 alias hFileCommand='$_TOOLSFOLDER/hTools/hFileCommand.sh'
+pEnvironment() {
+  # Defined as function to keep the actions run on the shell
+    . "$_TOOLSFOLDER/pTools/pEnvironment.sh"  "$@"
+}
 ```
 
 Do not forget to restart the terminal to apply the changes.  
