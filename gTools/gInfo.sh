@@ -114,11 +114,13 @@ CMD1="git rev-parse --abbrev-ref HEAD"
 BRANCHNAME=$($CMD1)
 CMD="git status -sb"
 $CMD | grep $BRANCHNAME | grep origin > /dev/null 2>&1 && EXISTATORIGIN=true || EXISTATORIGIN=false
+[ -z "$(git symbolic-ref -q HEAD)" ] && IS_DETACHED=true || IS_DETACHED=false
 # echo "EXISTATORIGIN=$EXISTATORIGIN"
-echo "- $LABEL: $BRANCHNAME (Does $BRANCHNAME Exist at origin? $EXISTATORIGIN)" | egrep --color=auto  "$LABEL" 
+echo "- $LABEL: $BRANCHNAME. Does $BRANCHNAME Exist at origin? $EXISTATORIGIN. Is it detached? $IS_DETACHED" | egrep --color=auto  "$LABEL" 
 if [ "$VERBOSE" = true ]; then
     echo -e "> Run command [$CMD1]" 
     echo -e "> Run command [$CMD]" 
+    echo -e "> Run command [git symbolic-ref -q HEAD]"
 fi
 
 cd $GITROOTFOLDER
@@ -171,14 +173,16 @@ if [ "$VERBOSE" = true ]; then
     echo "---"
 fi
 LABEL="Existing branches"
-CMD="git branch -vva"
+CMD="git ls-remote origin"
 echo -e "- $LABEL:" | egrep --color=auto  "$LABEL" 
 if [ "$VERBOSE" = true ]; then
-    echo "NOTE: If you still see non existing branches, just run 'git remote prune origin' to get rid of them" | GREP_COLOR="mt=1;32" egrep  --color=always "NOTE"
+    echo "NOTE: If you still see deleted branches, just run 'git remote prune origin' to get rid of them" | GREP_COLOR="mt=1;32" egrep  --color=always "NOTE"
 fi
 $CMD
 if [ "$VERBOSE" = true ]; then
     echo -e "> Run command [$CMD]" 
+    # CMD="git branch -vva"
+    # echo -e "> Run command [$CMD]" 
 fi
 
 
