@@ -114,12 +114,11 @@ while true; do
                 else
                     CCLUE=$1
                 fi
-                CCLUEORIG=$CCLUE
-                shift;
+                CCLUEORIG=$CCLUE;
             elif test "${#K8SARTIFACT}" -eq 0; then
                 K8SARTIFACT=$1;
-                shift;
-            fi ;;
+            fi ;
+            shift ;;
     esac
 done
 

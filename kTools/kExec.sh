@@ -102,6 +102,8 @@ while true; do
                 [[ "$#" -eq 0 ]] && break;
                 COMMAND="$COMMAND $@"
                 break;
+            else
+                shift;
             fi ;;
     esac
 done

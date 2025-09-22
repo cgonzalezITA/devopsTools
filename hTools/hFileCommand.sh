@@ -165,11 +165,10 @@ while true; do
             elif test "${#CCLUE}" -eq 0; then
                 CCLUE=$1
                 CCLUEORIG=$1
-                shift;
             elif test "${#COMMAND}" -eq 0; then
                 COMMAND=$1;
-                shift;
-            fi ;;
+            fi ;
+            shift ;;
     esac
 done
 

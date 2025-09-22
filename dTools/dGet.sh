@@ -52,6 +52,7 @@ function help() {
 
 # getopts arguments
 while true; do
+    [[ "$#" -eq 0 ]] && break;
     case "$1" in
         -v) 
             VERBOSE=false; shift ;;
@@ -68,8 +69,8 @@ while true; do
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            fi
-            break ;;
+            fi ;
+            shift ;;
     esac
 done
 
