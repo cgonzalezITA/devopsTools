@@ -76,11 +76,10 @@ while true; do
             elif test "${#HCLUE}" -eq 0; then
                 HCLUE=$1
                 CCLUEORIG=$1
-                shift;
             elif test "${#SUBCOMMAND}" -eq 0; then
                 SUBCOMMAND=$1;
-                shift;
-            fi
+            fi ;
+            shift ;;
     esac
 done
 

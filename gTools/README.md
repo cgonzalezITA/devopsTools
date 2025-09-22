@@ -147,6 +147,9 @@ Execute the following steps at a Windows powershell terminal:
     If the agent is not running it has to be set to automatically start (next operation requires elevated permissions):
     
     ```shell
+    #To set its start as automatic (requires admin permission):​
+    Get-Service -Name ssh-agent | Set-Service -StartupType "Automatic​"
+    Start-Service -Name "ssh-agent"
     #To set its start as automatic (This step requires admin permission):​
     Get-Service -Name ssh-agent | Set-Service -StartupType Automatic​
     ```

@@ -63,12 +63,11 @@ while true; do
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#PODCLUE}" -eq 0; then
-                PODCLUE=$1
-                shift;
+                PODCLUE=$1;
             elif test "${#COMMAND}" -eq 0; then
                 COMMAND=$1;
-                shift;
-            fi ;;
+            fi ;
+            shift ;;
     esac
 done
 

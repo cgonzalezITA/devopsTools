@@ -58,7 +58,8 @@ while true; do
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            fi ;;
+            fi ;
+            shift ;;
     esac
 done
 

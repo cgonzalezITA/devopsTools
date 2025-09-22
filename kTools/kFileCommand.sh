@@ -93,12 +93,11 @@ while true; do
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#CCLUE}" -eq 0; then
-                CCLUE=$1
-                shift;
+                CCLUE=$1;
             elif test "${#COMMAND}" -eq 0; then
                 COMMAND=$1;
-                shift;
-            fi ;;
+            fi ;
+            shift ;;
     esac
 done
 

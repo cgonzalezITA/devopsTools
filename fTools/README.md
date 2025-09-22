@@ -8,6 +8,7 @@ This folder contains scripts to ease certain operations on the OS environment.
   - [How to start VSCode with a certificate key](#how-to-start-vscode-with-a-certificate-key)
   - [Certificates](#certificates)
     - [Analyze a pfx certificate (extract pieces)](#analyze-a-pfx-certificate-extract-pieces)
+    - [Analyze certificates](#analyze-certificates)
 
 ## Add Custom headers to files with extension
 This utility can help to add copyright or other relevant info on top of the files. A demo is shown at script **fTools/addHeadersDemo.sh**  
@@ -112,4 +113,11 @@ openssl pkcs12 -in cert.pfx -clcerts -nokeys -out cert.pem
 
 # Extract the private key
 openssl pkcs12 -in cert.pfx -nocerts -nodes -out key.pem
+```
+
+### Analyze certificates
+- To see the validity of a public certificate:
+```shell
+PUBLIC_CERT=fullchain.pem
+openssl x509 -enddate -noout -in $PUBLIC_CERT
 ```
