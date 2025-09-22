@@ -15,6 +15,7 @@ SCRIPTNAME=$BASH_SOURCE
 if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"; fi
 BASEDIR=$(dirname "$SCRIPTNAME")
 
+SHOWHELP=false
 # Creates the env for the project
 ENVROOTFOLDER=/python/.envs # This is just a proposal, feel free to change it
 ENVNAME=env_name
@@ -25,8 +26,10 @@ CREATE=false
 ACTIVATE=false
 DEACTIVATE=false
 REQUIREMENTS_FILE=''
-LIST=false
+LISTENVS=false
 CUSTOM_ENVNAME=false
+# \t-x | --export: Exports the list of installed packages\n
+EXPORT_REQUIREMENTS=false
 #############################
 ## Functions               ##
 #############################
@@ -36,16 +39,17 @@ function help() {
     fi
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] \n 
-            \t-p | --pythoncmd <pythoncmd>: Python command to use (def. python or python3 if python not found) \n
-            \t-rf | --rootfolder <rootfolder>: Root folder where the envs are stored (def. $ENVROOTFOLDER) \n
-            \t-e | --envname <envname>: Name of the python env (def. $ENVNAME) \n
+            \t[-p | --pythoncmd] <pythoncmd>: Python command to use (def. python or python3 if python not found) \n
+            \t[-rf | --rootfolder] <rootfolder>: Root folder where the envs are stored (def. $ENVROOTFOLDER) \n
+            \t[-e | --envname] <envname>: Name of the python env (def. $ENVNAME) \n
             \texport DEF_PTOOLS_ENVNAME=<env_name>: To avoid using -e param, you can set this env var before running the script \n              
-            \t-c | --createenv: Creates python env (def.false)\n
-            \t-a | --activate: Activates python env (def. false) \n
-            \t-d | --deactivate: Deactivates python env \n
-            \t-r | --requirements <requirementsfile>: Requirements file to install packages (def. none) \n
-            \t-h | --help: Shows this help\n
-            \t-l | --list: Lists available envs at ENVROOTFOLDER\n"
+            \t[-c | --createenv]: Creates an empty python env (def.false)\n
+            \t[-x | --export]: Exports the list of installed packages\n
+            \t[-a | --activate]: Activates python env (def. false) \n
+            \t[-d | --deactivate]: Deactivates python env \n
+            \t[-ir | --installrequirements] <requirementsfile>: Requirements file to install packages (def. none) \n
+            \t[-h | --help]: Shows this help\n
+            \t[-lenvs | --listenvs]: Lists available envs at ENVROOTFOLDER\n"
     echo $HELP
 }
 
@@ -58,11 +62,10 @@ while true; do
     [[ "$#" -eq 0 ]] && break;
     case "$1" in
         -h | --help ) 
-            echo -e $(help);
-            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            SHOWHELP=true;
             break ;;
-        -l | --list )
-            LIST=true; shift ;;
+        -lenvs | --listenvs )
+            LISTENVS=true; shift ;;
         # \t-c | --createenv: Creates python env (def.false)\n
         # \t-p | --pythoncmd: Python command to use (def. python or python3 if python not found) \n
         -p | --pythoncmd )
@@ -82,14 +85,16 @@ while true; do
             ENVNAME=$2; 
             CUSTOM_ENVNAME=true;
             shift 2 ;;
-        # \t-r | --requirements: Requirements file to install packages (def. none) \n
         -rf | --rootfolder )
             if [[ "$#" -le 1 ]]; then echo "Error: Missing argument for -rf | --rootfolder option"; [ "$CALLMODE" == "executed" ] && exit -1 || return -1; fi
             ENVROOTFOLDER=$2; shift 2 ;;
-        -r | --requirements )
-            if [[ "$#" -le 1 ]]; then echo "Error: Missing argument for -r | --requirements option"; [ "$CALLMODE" == "executed" ] && exit -1 || return -1; fi
+        # \t-ir | --installrequirements: Requirements file to install packages (def. none) \n
+        -ir | --installrequirements )
+            if [[ "$#" -le 1 ]]; then echo "Error: Missing argument for -ir | --installrequirements option"; [ "$CALLMODE" == "executed" ] && exit -1 || return -1; fi
             REQUIREMENTS_FILE=$2; 
             shift 2 ;;
+        -x | --export )
+            EXPORT_REQUIREMENTS=true; shift ;;
         # catch all for unknown params or positional args
         * ) 
             if [[ $1 == -* ]]; then
@@ -112,40 +117,52 @@ fi
 
 
 
-echo "PYTHONCMD=[$PYTHONCMD]"
+# echo "PYTHONCMD=[$PYTHONCMD]"
 PVERSION=$($PYTHONCMD --version 2>&1 | awk '{print $2}')
-echo "PVERSION=[$PVERSION]"
+# echo "PVERSION=[$PVERSION]"
 
+ENVNAMECOMESFROMENV=false
 if [ "$CUSTOM_ENVNAME" = false ] && [ -n "$DEF_PTOOLS_ENVNAME" ]; then
     ENVNAME=$DEF_PTOOLS_ENVNAME
-    echo "Using env name from DEF_PTOOLS_ENVNAME env var: '$ENVNAME'"
+    ENVNAMECOMESFROMENV=true
 fi
-echo "Working with python version: $PVERSION ($PYTHONCMD). Selected python env='$ENVNAME' in $ENVROOTFOLDER"
-
+echo "# Working with python version: $PVERSION ($PYTHONCMD)."
+echo "# ENVROOTFOLDER=[$ENVROOTFOLDER]"
+echo "# ENVNAME=[$ENVNAME] $([ "$ENVNAMECOMESFROMENV" = true ] && echo " (It comes from DEF_PTOOLS_ENVNAME env var)")"
 PYTHONENV=$ENVROOTFOLDER/$ENVNAME/bin  
+if [ "$SHOWHELP" = true ]; then
+    echo -e $(help);
+    [ "$CALLMODE" == "executed" ] && exit 0 || return 0;
+fi
 
-if [ "$LIST" = true ]; then
-    echo "Available envs in $ENVROOTFOLDER folder:"
+if [ "$LISTENVS" = true ]; then
+    echo "# Available envs in $ENVROOTFOLDER folder:"
     ls -1 "$ENVROOTFOLDER" | sed 's/^/- /'
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
-
 if [ "$CREATE" = true ]; then
-    echo "Creating python env $ENVNAME int $ENVROOTFOLDER..."
+    echo "# Creating python env $ENVNAME int $ENVROOTFOLDER..."
     read -p "Press [ENTER] to continue or [CTRL+C] to abort"
     sudo mkdir -p  $ENVROOTFOLDER
     $PYTHONCMD -m venv --copies $ENVROOTFOLDER/$ENVNAME 
 fi
 
 if [ "$ACTIVATE" = true ]; then
-    echo "Activating python env $PYTHONENV..."
+    echo "# Activating python env $PYTHONENV..."
     read -p "Press [ENTER] to continue or [CTRL+C] to abort"
     source $PYTHONENV/activate  
 fi
 if [ -n "$REQUIREMENTS_FILE" ]; then
-    echo "Installing requirements from $REQUIREMENTS_FILE..."
+    echo "# Installing requirements from $REQUIREMENTS_FILE..."
     read -p "Press [ENTER] to continue or [CTRL+C] to abort"
     pip install --no-cache-dir -r $REQUIREMENTS_FILE
+fi
+
+if [ "$EXPORT_REQUIREMENTS" = true ]; then
+    echo "# Running command pip list --not-required --format=freeze to export the list of installed packages..."
+    echo "# pip freeze --all can also be used to include all dependencies"
+    pip list --not-required --format=freeze
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
 if [ "$DEACTIVATE" = true ]; then
