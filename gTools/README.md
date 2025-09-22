@@ -61,11 +61,40 @@ Presious steps need to be added to the user **~/.bashrc** file to register the k
       ...
       ssh-add ~/.ssh/<SSHFile-N>
     ```
-5. Finally you can start working with your git repository using a git@ ref.
+5. Finally you can start working with your git repository using a git@ ref if the https ref. is still used.
     ```shell
+    # If repo is has not been cloned yet, use the git@ ref.
     git clone git@....git
+    
+    # If it is already cloned, check that the origin ref. is correct (git@)
+    git remote -v
+    # If the ref. is a https ref., replace it by the git@ equivalent one    
     git remote set-url origin git@....git
     ```
+
+6. If an error still appears on the `git clone git@git...` use SSH over HTTPS (port 443):
+    ```shell
+    git clone git@....git
+    # If the following error appears:
+    #     ssh: connect to host github.com port 22: Connection refused
+    #   fatal: Could not read from remote repository.
+    # Set up a SSH over HTTPS
+    vi ~/.ssh/config
+    # Add the following lines replacing the <SSHFile>
+    #  Host github.com
+    #    HostName ssh.github.com
+    #    Port 443
+    #    User git
+    #    IdentityFile ~/.ssh/<SSHFile>
+
+    chmod 600 ~/.ssh/config
+    ssh -T git@github.com
+    # The following message should appears
+    # Hi username! You've successfully authenticated, but GitHub does not provide shell access.
+
+    # Try the clonation again
+    ```
+
 ### Windows
 Execute the following steps at a Windows powershell terminal:
 1. Generate the certificate
@@ -96,7 +125,9 @@ Execute the following steps at a Windows powershell terminal:
     $env:CERT_FILE="$HOME/.ssh/$env:KEY_NAME"
     ssh-add $env:CERT_FILE
       # The correct message should be something similar to:​
-      Identity added: .$env:CERT_FILE​
+      Identity added: <Full path to the .$env:CERT_FILE​>
+    # Verify the identity has been added
+    ssh-add -L 
     ```
 4. Finally you can start working with your git repository using a git@ ref.
     ```shell
@@ -119,6 +150,8 @@ Execute the following steps at a Windows powershell terminal:
     #To set its start as automatic (requires admin permission):​
     Get-Service -Name ssh-agent | Set-Service -StartupType "Automatic​"
     Start-Service -Name "ssh-agent"
+    #To set its start as automatic (This step requires admin permission):​
+    Get-Service -Name ssh-agent | Set-Service -StartupType Automatic​
     ```
 
     ```shell
@@ -134,7 +167,7 @@ Execute the following steps at a Windows powershell terminal:
     icacls $env:CERT_FILE /remove "Administrators" "SYSTEM" "Users“​
     icacls $env:CERT_FILE ​
     # Rerun the step 3
-    ssh-agent $env:CERT_FILE
+    ssh-add $env:CERT_FILE
       # The correct message should be something similar to:​
       Identity added: .$env:CERT_FILE​
     ```

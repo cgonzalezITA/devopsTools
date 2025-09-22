@@ -66,15 +66,15 @@ ssh-keygen -t ed25519 -f $CERTFILENAME
 # 2- Add the certificate into the authorized_key file: 
 cat $CERTFILENAME.pub >> ~/.ssh/authorized_keys
 
-# 3- Copy the content of the $CERTFILENAME (cat $CERTFILENAME) into a file of the Windows PC W (e.g. C:\Users\<user>\.ssh\zerowaste.itainova.es.key) and restrict the permissions to read only (multiline certificate must end with a newline after the “-----END OPENSSH PRIVATE KEY-----”)
+# 3- Copy the content of the $CERTFILENAME (cat $CERTFILENAME) into a file of the Windows PC W (e.g. C:\Users\<user>\.ssh\keyFile) and restrict the permissions to read only (multiline certificate must end with a newline after the “-----END OPENSSH PRIVATE KEY-----”)
 cat $CERTFILENAME
 ```
-4- At the VSCode of the Windows PC W, edit the Remote Explorer config file (Open SSH config file) and describe the connection to the desired server.
+4- At the VSCode of the Windows PC W, edit the Remote Explorer config file _C:\Users\<USER>\.ssh\config.txt_ (Open SSH config file) and describe the connection to the desired server.
 ```
-Host zerowaste.itainnova.es
-    HostName <host name of the server A: eg. zerowaste.itainnova.es>
+Host <hostAddress>
+    HostName <host name of the server A: eg. zerowaste.ita.es>
     User <username: eg. cgonzalez>
-    IdentityFile <Path to the key certificate at the Windows PC W. eg: C:\Users\cgonzalez\.ssh\zerowaste.itainova.es.key>
+    IdentityFile <Path to the key certificate at the Windows PC W. eg: C:\Users\cgonzalez\.ssh\keyFile>
 ```
 
 ## Certificates

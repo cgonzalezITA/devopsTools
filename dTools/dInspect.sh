@@ -33,7 +33,7 @@ ARTIFACTSFULLNAMES=" all ps network networks secret secrets "
 ## Functions               ##
 #############################
 function help() {
-    HELP="HELP: USAGE: $SCRIPTNAME [optArgs] <docker name clue>                                             \n 
+    HELP="HELP: USAGE: $SCRIPTNAME [optArgs] <docker name clue> <artifact>                                            \n 
             \t-h: Show help info                                                                            \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)      \n
             \t-v: Do not show verbose info                                                                  \n
@@ -52,6 +52,7 @@ function help() {
 
 # getopts arguments
 while true; do
+    [[ "$#" -eq 0 ]] && break;
     case "$1" in
         -v | --verbose ) 
             VERBOSE=false; shift ;;
@@ -63,41 +64,30 @@ while true; do
         -fv | --forcevalue ) 
             USECCLUE=false; shift ;;
         * ) 
-            if [[ $1 == -* ]]; then
+            if [[ $1 == -* && $1 != --* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            elif test "${#PODCLUE}" -eq 0; then
+                PODCLUE=$1
+            elif test "${#ARTIFACT}" -eq 0; then
+                ARTIFACT=$1;
             fi
-            break ;;
+            shift;;
     esac
 done
 
-PROVIDEDPARAMS=$#
-# positional arguments
-if test "$#" -lt 1; then
+if test "${#PODCLUE}" -eq 0; then
     echo -e $(help "ERROR: <docker name clue> is mandatory");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-fi
-PODCLUE=$1
-shift
-
-if test "$#" -ge 1; then
-    ARTIFACT=$1
 fi
 
 
 
 if [[ ! ${ARTIFACTSFULLNAMES[@]} =~ " $ARTIFACT " ]]
 then
-# echo "Artifact value not found: $PROVIDEDPARAMS"
-# Swapping is done between ARTIFACT AND CCLUE
-    if test "$PROVIDEDPARAMS" -le 1; then
-        PODCLUE=$ARTIFACT
-        ARTIFACT=ps
-    elif test "$PROVIDEDPARAMS" -le 2; then
-        TMP=$PODCLUE
-        PODCLUE=$ARTIFACT
-        ARTIFACT=$TMP
-    fi
+    TMP=$PODCLUE
+    PODCLUE=$ARTIFACT
+    ARTIFACT=$TMP
 fi
 
 if test "$ARTIFACT" == "ps"; then

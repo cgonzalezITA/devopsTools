@@ -26,8 +26,7 @@ The script [deployDevopTools.sh](./quickDeployment/deployDevopTools.sh) automati
 
 Most of the content of this project are scripts, so execution permission must be granted to them:
 ```shell
-cd <devopsToolsFolder>
-find devopTools -name "*.sh" -type f -exec chmod +x {} +
+find devopsTools -name "*.sh" -type f -exec chmod +x {} +
 ```
 
 To ease the access to the scripts, several approaches can be taken. The best one is to give access to scripts via the alias ubuntu feature. This aproach speeds up the writting of the commands.  
@@ -54,6 +53,7 @@ alias gPushAll='$_TOOLSFOLDER/gTools/gPushAll.sh'
 alias gFreeze='$_TOOLSFOLDER/gTools/gFreeze.sh'
 alias gCommit='$_TOOLSFOLDER/gTools/gCommit.sh'
 alias gInfo='$_TOOLSFOLDER/gTools/gInfo.sh'
+alias gSearchTextInRepos='$_TOOLSFOLDER/gTools/gSearchTextInRepos.sh'
 alias _dGetContainers='$_TOOLSFOLDER/dTools/_dGetContainers.sh'
 alias dLogs='$_TOOLSFOLDER/dTools/dLogs.sh'
 alias dCompose='$_TOOLSFOLDER/dTools/dCompose.sh'
@@ -73,6 +73,10 @@ alias _kGetArtifact='$_TOOLSFOLDER/kTools/_kGetArtifact.sh'
 alias kSecret-createGeneric='$_TOOLSFOLDER/kTools/kSecret-createGeneric.sh'
 alias kRemoveRestart='$_TOOLSFOLDER/kTools/kRemoveRestart.sh'
 alias hFileCommand='$_TOOLSFOLDER/hTools/hFileCommand.sh'
+pEnvironment() {
+  # Defined as function to keep the actions run on the shell
+    . "$_TOOLSFOLDER/pTools/pEnvironment.sh"  "$@"
+}
 ```
 
 Do not forget to restart the terminal to apply the changes.  

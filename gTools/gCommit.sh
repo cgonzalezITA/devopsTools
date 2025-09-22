@@ -62,6 +62,8 @@ while true; do
              [ "$CALLMODE" == "executed" ] && exit -1 || return -1; ;;
         -a | --ask ) 
             VERBOSE=false; shift ;;
+        -y | --yes ) 
+            ASK=false; shift ;;
         -t | --tag ) 
             TAG="-a \"$2\""; shift; shift ;;
         -f | -ft | --forcetag ) 
@@ -114,10 +116,14 @@ if [ "$VERBOSE" = true ]; then
     echo "---"
     echo "  >Running command [$CMD]"
 fi
-MSG=$(echo "QUESTION: Are you sure to run the previous command to commit the git changes [Y/n]?" \
-            | sed "s/\(to commit the git changes\)/\x1b[31m\1\x1b[0m/g")
-read -p "$MSG" -n 1 -r
-echo    # (optional) move to a new line
+if [ "$ASK" = true ]; then
+    MSG=$(echo "QUESTION: Are you sure to run the previous command to commit the git changes [Y/n]?" \
+                | sed "s/\(to commit the git changes\)/\x1b[31m\1\x1b[0m/g")
+    read -p "$MSG" -n 1 -r
+    echo    # (optional) move to a new line
+else
+    REPLY="y"
+fi
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
     if test "${#SUBMODULE}" -gt 0; then

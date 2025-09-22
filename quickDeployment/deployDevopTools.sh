@@ -51,6 +51,7 @@ alias gPushAll='\$_TOOLSFOLDER/gTools/gPushAll.sh'
 alias gFreeze='\$_TOOLSFOLDER/gTools/gFreeze.sh'
 alias gCommit='\$_TOOLSFOLDER/gTools/gCommit.sh'
 alias gInfo='\$_TOOLSFOLDER/gTools/gInfo.sh'
+alias gSearchTextInRepos='\$_TOOLSFOLDER/gTools/gSearchTextInRepos.sh'
 alias _dGetContainers='\$_TOOLSFOLDER/dTools/_dGetContainers.sh'
 alias dLogs='\$_TOOLSFOLDER/dTools/dLogs.sh'
 alias dCompose='\$_TOOLSFOLDER/dTools/dCompose.sh'
@@ -70,7 +71,10 @@ alias _kGetArtifact='\$_TOOLSFOLDER/kTools/_kGetArtifact.sh'
 alias kSecret-createGeneric='\$_TOOLSFOLDER/kTools/kSecret-createGeneric.sh'
 alias kRemoveRestart='\$_TOOLSFOLDER/kTools/kRemoveRestart.sh'
 alias hFileCommand='\$_TOOLSFOLDER/hTools/hFileCommand.sh'
-
+pEnvironment() {
+  # Defined as function to keep the actions run on the shell
+    . "$_TOOLSFOLDER/pTools/pEnvironment.sh"  "$@"
+}
 EOF
         $(readAnswer "Review the ~/.bash_aliases file to check the content is not duplicated nor contains errors.\n\
         Press a key to continue" '' 15 false false);        
@@ -95,6 +99,28 @@ EOF
         sudo apt-get install jq
     else
         echo ✅🆗
+    fi
+
+    # Installs helm
+    if ! command -v helm &> /dev/null; then
+        echo "❌ Helm not found. Installing..."
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    fi
+    if command -v helm &> /dev/null; then
+        echo "✅🆗 Helm is already installed: $(helm version --short)"
+    else
+        echo "❌ Helm could not be installed"
+    fi
+
+    if ! command -v kubectl &> /dev/null; then
+        echo "❌ kubectl not found. Installing latest version..."
+        
+        curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+    fi
+    if ! command -v kubectl &> /dev/null; then
+        echo "✅🆗 kubectl is already installed: $(kubectl version --client --short)"
     fi
 }
 

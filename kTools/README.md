@@ -7,6 +7,7 @@
 - [Create a Minimum Viable component for quick testing](#create-a-minimum-viable-component-for-quick-testing)
   - [Deploy a web server](#deploy-a-web-server)
   - [Deploy a job](#deploy-a-job)
+- [Issue terminating an artifact (MicroK8s)](#issue-terminating-an-artifact-microk8s)
 
 This folder contains scripts to ease certain operations on the kubernetes cluster.
 These commands rely on the kubectl program to perform its functionality and has been tested in a Ubuntu 20.04.6 LTS.    
@@ -203,4 +204,28 @@ EOF
 
 kubectl apply -f $K8S_COMPONENT_FILENAME
 kubectl wait --for=condition=complete --timeout=300s job/$K8S_COMPONENT_NAME
+```
+
+## Issue terminating an artifact (MicroK8s)
+Using the MicroK8s version, sometimes the deletion of an artifact leaves it in a neverending 'terminating' state. After ruling out termination criteria not met, the procedure to force the inmediate deletion of the artifact comprises the following steps (This example focuses on a namespace):
+
+```shell
+NAMESPACE=provider
+FILE=/tmp/ns.json
+kubectl get namespace $NAMESPACE $ -o json > $FILE
+# Delete finalizers
+vi $FILE
+# Replace "spec": { "finalizers": [ "kubernetes" ] }
+# By      "spec": { "finalizers": []},
+
+# Enable the proxy to control microk8s
+microk8s kubectl proxy &
+
+# Force object deletion
+curl -k -H "Content-Type: application/json" -X PUT   --data-binary @$FILE   http://127.0.0.1:8001/api/v1/namespaces/$NAMESPACE/finalize
+```
+In case other problems persist, it is advisable to restart the microk8s cluster.
+```script
+sudo microk8s stop
+sudo microk8s start
 ```
