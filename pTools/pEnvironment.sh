@@ -189,24 +189,28 @@ if [ "$ACTIVATE" = true ]; then
 fi
 if [ -n "$REQUIREMENTS_FILE" ]; then
     echo "# Installing requirements from $REQUIREMENTS_FILE..."
-    read -p "Press [ENTER] to continue or [CTRL+C] to abort"
     if [ $PACKAGEMANAGER == "pip" ]; then
-        $PACKAGEMANAGER install --no-cache-dir -r $REQUIREMENTS_FILE
+        CMD="$PACKAGEMANAGER install --no-cache-dir -r $REQUIREMENTS_FILE"
     else
-        $PACKAGEMANAGER install --file $REQUIREMENTS_FILE
+        CMD="$PACKAGEMANAGER install --file $REQUIREMENTS_FILE"
     fi
+    echo "# Running command: [$CMD]"
+    read -p "Press [ENTER] to continue or [CTRL+C] to abort"
+    $CMD        
 fi
 
 if [ "$EXPORT_REQUIREMENTS" = true ]; then
     if [ $PACKAGEMANAGER == "pip" ]; then
         echo "# Running command pip list --not-required --format=freeze to export the list of installed packages..."
         echo "# pip freeze --all can also be used to include all dependencies"
-        $PACKAGEMANAGER list --not-required --format=freeze
+        CMD="$PACKAGEMANAGER list --not-required --format=freeze"
     else
         echo "# Running command conda list --explicit --md5 to export the list of installed packages..."
-        $PACKAGEMANAGER list --explicit --md5
+        CMD="$PACKAGEMANAGER list --explicit --md5"
     fi
-    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    echo "# Running command: [$CMD]"
+    read -p "Press [ENTER] to continue or [CTRL+C] to abort"
+    $CMD        
 fi
 
 if [ "$DEACTIVATE" = true ]; then
