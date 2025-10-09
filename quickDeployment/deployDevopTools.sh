@@ -73,7 +73,7 @@ alias kRemoveRestart='\$_TOOLSFOLDER/kTools/kRemoveRestart.sh'
 alias hFileCommand='\$_TOOLSFOLDER/hTools/hFileCommand.sh'
 pEnvironment() {
   # Defined as function to keep the actions run on the shell
-    . "$_TOOLSFOLDER/pTools/pEnvironment.sh"  "$@"
+    . "\$_TOOLSFOLDER/pTools/pEnvironment.sh"  "\$@"
 }
 EOF
         $(readAnswer "Review the ~/.bash_aliases file to check the content is not duplicated nor contains errors.\n\

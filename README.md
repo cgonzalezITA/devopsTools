@@ -18,7 +18,7 @@ DEVTOOLS_GH_HTTPS="https://github.com/cgonzalezITA/devopsTools.git"
 git clone [-b <branchName>] $DEVTOOLS_GH_HTTPS [<devopsToolsFolder>]
   # OR
 DEVTOOLS_GH_GIT="git@github.com:cgonzalezITA/devopsTools.git"
-git clone [-b <branchName>] $DEVTOOLS_GH_HTTPS [<devopsToolsFolder>]
+git clone [-b <branchName>] $DEVTOOLS_GH_GIT [<devopsToolsFolder>]
 ```
 
 ## Enabling access to the tools from CLI
