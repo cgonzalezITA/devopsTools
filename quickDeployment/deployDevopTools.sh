@@ -84,44 +84,55 @@ EOF
     shopt -s expand_aliases
     . ~/.bash_aliases
 
-    echo "Check yq is installed"
-    VERSION=$(yq --version 2>/dev/null)
-    if [[ "$?" -ne 0 ]]; then
-        echo -e "❌\ninstall yq"
-        wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./yq && chmod +x ./yq && sudo mv ./yq /usr/bin
-    else
-        echo ✅🆗
+    if [ $(readAnswer "Install yq if not installed (y*|n)" 'y') == 'y' ]; then
+        echo "Check yq is installed"
+        VERSION=$(yq --version 2>/dev/null)
+        if [[ "$?" -ne 0 ]]; then
+            echo -e "❌\ninstall yq"
+            wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./yq && chmod +x ./yq && sudo mv ./yq /usr/bin
+        else
+            echo ✅🆗
+        fi
     fi
-    echo "Checking jq is installed"
-    VERSION=$(jq --version 2>/dev/null)
-    if [[ "$?" -ne 0 ]]; then
-        echo -e "❌\ninstall yq"
-        sudo apt-get install jq
-    else
-        echo ✅🆗
+
+    if [ $(readAnswer "Install jq if not installed (y*|n)" 'y') == 'y' ]; then
+        echo "Checking jq is installed"
+        VERSION=$(jq --version 2>/dev/null)
+        if [[ "$?" -ne 0 ]]; then
+            echo -e "❌\ninstall yq"
+            sudo apt-get install jq
+        else
+            echo ✅🆗
+        fi
+    fi
+
+    
+    if [ $(readAnswer "Install kubectl if not installed (y*|n)" 'n') == 'y' ]; then
+        if ! command -v kubectl &> /dev/null; then
+            echo "❌ kubectl not found. Installing latest version..."
+            
+            curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+        fi
+        if ! command -v kubectl &> /dev/null; then
+            echo "✅🆗 kubectl is already installed: $(kubectl version --client --short)"
+        fi
     fi
 
     # Installs helm
-    if ! command -v helm &> /dev/null; then
-        echo "❌ Helm not found. Installing..."
-        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-    fi
-    if command -v helm &> /dev/null; then
-        echo "✅🆗 Helm is already installed: $(helm version --short)"
-    else
-        echo "❌ Helm could not be installed"
+    if [ $(readAnswer "Install helm if not installed (y*|n)" 'n') == 'y' ]; then
+        if ! command -v helm &> /dev/null; then
+            echo "❌ Helm not found. Installing..."
+            curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        fi
+        if command -v helm &> /dev/null; then
+            echo "✅🆗 Helm is already installed: $(helm version --short)"
+        else
+            echo "❌ Helm could not be installed"
+        fi
     fi
 
-    if ! command -v kubectl &> /dev/null; then
-        echo "❌ kubectl not found. Installing latest version..."
-        
-        curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-        chmod +x kubectl
-        sudo mv kubectl /usr/local/bin/
-    fi
-    if ! command -v kubectl &> /dev/null; then
-        echo "✅🆗 kubectl is already installed: $(kubectl version --client --short)"
-    fi
 }
 
 #---------------------------------------------- main program ------------------------
