@@ -247,30 +247,47 @@ fi
 
 if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     COMMAND="restart";
+    ASKPARAM="-y"
     [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
-    ASKPARAM=""
-    [ "$ASK" = false ] && ASKPARAM="-y";
     CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM down $SERVICENAME"
-    [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";w
-    bash -c "$CMD"
-    RC=$?; 
-    if test "$RC" -ne 0; then 
+    [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";
+    if [ "$ASK" = true ]; then
+        MSG="QUESTION: Do you want to run previous command?"
+        read -p "$MSG [Y/n]? " -n 1 -r 
+        [ "$VERBOSE" = true ] && echo    # (optional) move to a new line
+    else
+        REPLY="y"
+    fi
+    if [[ $REPLY =~ ^[1Yy]$ ]]; then
+        bash -c "$CMD"
+        RC=$?; 
+        if test "$RC" -ne 0; then 
+            [ "$VERBOSE" = true ] && echo "---"
+            echo -e $(help "ERROR: Stopping service $SERVICENAME");
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+        fi
+        sleep 1
+        # Chapuza para invertir el flag detach
+        if test "${#DETACHCMD}" -eq 0; then
+            DETACHCMD="--detach"
+        else
+            DETACHCMD=""
+        fi
+        CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $ASKPARAM up $SERVICENAME"
+        [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
+        if [ "$ASK" = true ]; then
+            MSG="QUESTION: Do you want to run previous command?"
+            read -p "$MSG [Y/n]? " -n 1 -r 
+            [ "$VERBOSE" = true ] && echo    # (optional) move to a new line
+        else
+            REPLY="y"
+        fi
         [ "$VERBOSE" = true ] && echo "---"
-        echo -e $(help "ERROR: Stopping service $SERVICENAME");
+        if [[ $REPLY =~ ^[1Yy]$ ]]; then
+            bash -c "$CMD"
+        fi
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
-    sleep 1
-    # Chapuza para invertir el flag detach
-    if test "${#DETACHCMD}" -eq 0; then
-        DETACHCMD="--detach"
-    else
-        DETACHCMD=""
-    fi
-    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $ASKPARAM up $SERVICENAME"
-    [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
-    [ "$VERBOSE" = true ] && echo "---"
-    bash -c "$CMD"
-    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
 
