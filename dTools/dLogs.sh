@@ -83,6 +83,7 @@ while true; do
             elif test "${#PODCLUE}" -eq 0; then
                 # PODCLUE will be split into PODCLUE=opa and K8SARTIFACT=deploy
                 PODCLUE=$1
+            fi
             shift ;;
     esac
 done
