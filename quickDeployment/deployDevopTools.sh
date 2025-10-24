@@ -91,7 +91,7 @@ EOF
             echo -e "❌\ninstall yq"
             wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./yq && chmod +x ./yq && sudo mv ./yq /usr/bin
         else
-            echo ✅🆗
+            echo ✅ jq is installed $(yq --version)
         fi
     fi
 
@@ -102,21 +102,69 @@ EOF
             echo -e "❌\ninstall yq"
             sudo apt-get install jq
         else
-            echo ✅🆗
+            echo ✅ jq is installed $(jq --version)
         fi
     fi
 
-    
     if [ $(readAnswer "Install kubectl if not installed (y*|n)" 'n') == 'y' ]; then
         if ! command -v kubectl &> /dev/null; then
             echo "❌ kubectl not found. Installing latest version..."
-            
-            curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
+           
+            # Exit immediately if a command exits with a non-zero status.
+            set -e
+
+            echo "--- Step 1: Installing dependencies and ensuring system is up-to-date ---"
+            sudo apt update
+            sudo apt install -y apt-transport-https ca-certificates curl gpg
+
+            echo ""
+            echo "--- Step 2: Downloading and adding the Kubernetes GPG key ---"
+            # Download and detach the GPG key
+            curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+            sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+            echo ""
+            echo "--- Step 3: Adding the Kubernetes APT repository (v1.30 stream) ---"
+            # Add the repository definition
+            echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+
+            echo ""
+            echo "--- Step 4: Updating package index and installing kubectl ---"
+            sudo apt update
+            sudo apt install -y kubectl
+
+            echo ""
+            echo "--- Installation complete! Verifying version ---"
+            # kubectl version --client
+
+            echo "Script finished successfully. kubectl is now installed."
+            # sudo mv kubectl /usr/local/bin/
         fi
-        if ! command -v kubectl &> /dev/null; then
-            echo "✅🆗 kubectl is already installed: $(kubectl version --client --short)"
+        if command -v kubectl version --client&> /dev/null; then
+            echo "✅🆗 kubectl is already installed: $(kubectl version --client)"
+        fi
+    fi
+
+    if [ $(readAnswer "Install microk8s if not installed (Select n*, or phase 1 of installation). Choose n|1" 'n') == '1' ]; then
+        echo "Checking microk8s (phase 1) is installed"
+        VERSION=$(microk8s kubectl get pods 2>/dev/null)
+        if [[ "$?" -ne 0 ]]; then
+            echo -e "❌\ninstall microk8s (phase 1)"
+            echo -e "After this phase finished, rerun the script '$SCRIPTNAME'"
+            $BASEDIR/installMicrok8s.sh 1
+            # sudo apt-get install jq
+        else
+            echo "✅ microk8s (phase 1) seems to be installed"
+        fi
+    fi
+    if [ $(readAnswer "Install microk8s if not installed (Select n*, phase 2 of installation). Choose n|2" 'n') == '2' ]; then
+        echo "Checking microk8s (phase 2) is installed"
+        VERSION=$(kubectl get pods 2>/dev/null)
+        if [[ "$?" -ne 0 ]]; then
+            echo -e "❌\ninstall microk8s (phase 2)"
+            $BASEDIR/installMicrok8s.sh 2
+        else
+            echo "✅ microk8s (phase 2) seems to be installed"
         fi
     fi
 
