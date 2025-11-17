@@ -42,7 +42,9 @@ COMMANDSAVAILABLE=" up start install u down stop del d restart r debug info "
 
 # \tpdir <Project directory>: def. Folder where the docker-compose is located   \n
 PROJECTDIR=""
-# \t-p <Project name>: Deploy the docker compose as a project with the given name                 \n
+# \t-p | --profile: Profile to use in the docker compose deployment \n
+PROFILE=""
+# \t-pn <Project name>: Deploy the docker compose as a project with the given name                 \n
 PROJECTNAME=""
 # \t-env <envFile>: Specifies a custom .env file (def=.env)                                       \n
 ENVFILE=""
@@ -63,7 +65,7 @@ function help() {
             \t-dc <dockerCompose command>: docker-compose*, docker compose, ...                                                   \n
             \t                    export DOCKERCOMPOSE_CMD=<DockerComposeCommnad> to avoid having to repeat it on this commands   \n
             \t[-pdir | --project-directory <Project directory>]: def. Folder where the docker-compose is located                                          \n
-            \t-p <Project name>: Deploy the docker compose as a project with the given name                                       \n
+            \t-pn <Project name>: Deploy the docker compose as a project with the given name                                       \n
             \t-env <envFile>: Specifies a custom .env file (def=.env)                                                             \n
             \t-b: Build the docker compose images                                                                                 \n
             \t-d: Do not detach                                                                                                   \n
@@ -80,7 +82,7 @@ function help() {
 # getopts arguments
 while true; do
     [[ "$#" -eq 0 ]] && break;
-    case "$1" in
+    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
         -v | --verbose ) 
             VERBOSECMD=$1;
             VERBOSE=false; shift ;;
@@ -112,13 +114,16 @@ while true; do
         -pdir | --project-directory) 
             PROJECTDIR=$2
             shift ; shift ;;
+        -p | --profile ) 
+            PROFILE=$2
+            shift ; shift ;;
         -env | --env-file ) 
             ENVFILE=$2
             shift ; shift ;;
         -dc ) 
             DOCKERCOMPOSE_CMD=$2
             shift ; shift ;;
-        -p | --projectname ) 
+        -pn | --projectname ) 
             PROJECTNAME=$2
             shift; shift ;;
         -b | --build ) 
@@ -205,11 +210,13 @@ if [[ "${#DOCKERCOMPOSE_FILE}" -gt 0 ]]; then
     DOCKERCOMPOSE_FILE=$(echo "$DOCKERCOMPOSE_FILE" | sed 's/ /\\ /g')
 fi
 [[ "${#PROJECTNAME}" -gt 0 ]] && PROJECTNAME="-p $PROJECTNAME";
+[[ "${#PROFILE}" -gt 0 ]] && PROFILE="--profile $PROFILE";
 [[ "${#ENVFILE}" -gt 0 ]] && ENVFILE="--env-file \"$ENVFILE\"";
 [[ "${#PROJECTDIR}" -gt 0 ]] && PROJECTDIR="--project-directory \"$PROJECTDIR\"";
 [[ "$COMMAND" =~ ^(debug|info)$ ]] && COMMAND="info";
 
-CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR config --services"
+CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR $PROFILE config --services"
+# echo "CMD=$CMD" > /dev/tty;
 SERVICES=$(eval $CMD)
 RC=$?; 
 if test "$RC" -ne 0; then 
@@ -237,6 +244,7 @@ if [ "$COMMAND" == "info" ] || [ "$VERBOSE" == true ]; then
     echo "- PROJECTDIR=[$PROJECTDIR]"
     echo "- PROJECTNAME=[$PROJECTNAME]"
     echo "- ENVFILE=[$ENVFILE]"
+    echo "- PROFILE=[$PROFILE]"
     echo "- COMMAND=[$COMMAND]"
     echo "- BUILD=[$BUILDCMD]"
     echo "- DETACH=[$DETACHCMD]"
@@ -266,7 +274,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     else
         DETACHCMD=""
     fi
-    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $ASKPARAM up $SERVICENAME"
+    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $PROFILE $ASKPARAM up $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
     [ "$VERBOSE" = true ] && echo "---"
     bash -c "$CMD"
@@ -307,7 +315,7 @@ elif [ "$COMMAND" == "rm -f " ]; then
     fi
 fi
 
-CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $COMMAND $EXTRACMDS $SERVICENAME"
+CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME  $PROFILE $COMMAND $EXTRACMDS $SERVICENAME"
 [ "$VERBOSE" = true ] && echo -e "---\nRunning CMD=$CMD $SERVICEDESC"
 if [ "$ASK" = true ]; then
     MSG="QUESTION: Do you want to run the previous command?"

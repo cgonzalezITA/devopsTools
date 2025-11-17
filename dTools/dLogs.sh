@@ -97,6 +97,7 @@ fi
 
 # Code
 getComponents_result=$( $BASEDIR/_dGetContainers.sh ps "$USECCLUE" "$PODCLUE" "Show logs" false "" "Looking for components to see its logs");
+echo "DEBUG: getComponents_result=[$getComponents_result]" > /dev/tty;
 RC=$?; 
 if test "$RC" -ne 0; then 
     echo -e $(help "  ERROR: $getComponents_result");
