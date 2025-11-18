@@ -21,8 +21,6 @@ VERBOSE=true
 USECCLUE=true
 # \t<k8s componet name clue>: Clue to identify the artifact file name                                   \n
 PODCLUE=""
-# \t<command>: Command to be executed inside the pod"
-COMMAND=/bin/bash
 # \t-s <sinceTime>: Show logs generated since <sinceTime> moment. eg: 0s, 5s, 5m, 1h, ...               \n
 SINCEARG=""
 # \t-x \"<jsonArrayWithStrings2Exclude>\": Exclude lines containing any of the given strings            \n
@@ -34,7 +32,7 @@ DOWAIT=false
 ## Functions               ##
 #############################
 function help() {
-    HELP="HELP: USAGE: $SCRIPTNAME [optArgs] <k8s componet name clue> [<command:def: sh>]                         \n 
+    HELP="HELP: USAGE: $SCRIPTNAME [optArgs] <k8s componet name clue> \n 
             \t-h: Show help info                                                                                  \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)            \n
             \t-w: wait (3 seconds wait before running the command)                                                \n
@@ -78,21 +76,18 @@ while true; do
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            fi ;
+            elif test "${#PODCLUE}" -eq 0; then
+                # PODCLUE will be split into PODCLUE=opa and K8SARTIFACT=deploy
+                PODCLUE=$1
+            fi
             shift ;;
     esac
 done
 
 # positional arguments
-if test "$#" -lt 1; then
-    echo -e $(help "ERROR: <k8s componet name clue> is mandatory");
+if test "${#PODCLUE}" -eq 0; then
+    echo -e $(help "ERROR: <Docker service name clue> is mandatory");
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-fi
-PODCLUE=$1
-shift
-
-if test "$#" -ge 1; then
-    COMMAND=$1
 fi
 
 # Code

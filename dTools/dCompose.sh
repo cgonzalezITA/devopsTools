@@ -42,9 +42,9 @@ COMMANDSAVAILABLE=" up start install u down stop del d restart r debug info "
 
 # \tpdir <Project directory>: def. Folder where the docker-compose is located   \n
 PROJECTDIR=""
-# \t-p | --profile: Profile to use in the docker compose deployment \n
+# \t-pr | --profile: Profile to use in the docker compose deployment \n
 PROFILE=""
-# \t-pn <Project name>: Deploy the docker compose as a project with the given name                 \n
+# \t-p <Project name>: Deploy the docker compose as a project with the given name                 \n
 PROJECTNAME=""
 # \t-env <envFile>: Specifies a custom .env file (def=.env)                                       \n
 ENVFILE=""
@@ -65,7 +65,8 @@ function help() {
             \t-dc <dockerCompose command>: docker-compose*, docker compose, ...                                                   \n
             \t                    export DOCKERCOMPOSE_CMD=<DockerComposeCommnad> to avoid having to repeat it on this commands   \n
             \t[-pdir | --project-directory <Project directory>]: def. Folder where the docker-compose is located                                          \n
-            \t-pn <Project name>: Deploy the docker compose as a project with the given name                                       \n
+            \t-pr | --profile: Profile to use in the docker compose deployment \n
+            \t-p <Project name>: Deploy the docker compose as a project with the given name                                       \n
             \t-env <envFile>: Specifies a custom .env file (def=.env)                                                             \n
             \t-b: Build the docker compose images                                                                                 \n
             \t-d: Do not detach                                                                                                   \n
@@ -114,7 +115,7 @@ while true; do
         -pdir | --project-directory) 
             PROJECTDIR=$2
             shift ; shift ;;
-        -p | --profile ) 
+        -pr | --profile ) 
             PROFILE=$2
             shift ; shift ;;
         -env | --env-file ) 
@@ -123,7 +124,7 @@ while true; do
         -dc ) 
             DOCKERCOMPOSE_CMD=$2
             shift ; shift ;;
-        -pn | --projectname ) 
+        -p | --projectname ) 
             PROJECTNAME=$2
             shift; shift ;;
         -b | --build ) 
@@ -255,19 +256,27 @@ fi
 
 if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     COMMAND="restart";
+    ASKPARAM="-y"
     [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
-    ASKPARAM=""
-    [ "$ASK" = false ] && ASKPARAM="-y";
     CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM down $SERVICENAME"
-    [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";w
-    bash -c "$CMD"
-    RC=$?; 
-    if test "$RC" -ne 0; then 
-        [ "$VERBOSE" = true ] && echo "---"
-        echo -e $(help "ERROR: Stopping service $SERVICENAME");
-        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";
+    if [ "$ASK" = true ]; then
+        MSG="QUESTION: Do you want to run previous command?"
+        read -p "$MSG [Y/n]? " -n 1 -r 
+        [ "$VERBOSE" = true ] && echo    # (optional) move to a new line
+    else
+        REPLY="y"
     fi
-    sleep 1
+    if [[ $REPLY =~ ^[1Yy]$ ]]; then
+        bash -c "$CMD"
+        RC=$?; 
+        if test "$RC" -ne 0; then 
+            [ "$VERBOSE" = true ] && echo "---"
+            echo -e $(help "ERROR: Stopping service $SERVICENAME");
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+        fi 
+        sleep 1
+    fi
     # Chapuza para invertir el flag detach
     if test "${#DETACHCMD}" -eq 0; then
         DETACHCMD="--detach"
@@ -277,7 +286,17 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $PROFILE $ASKPARAM up $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
     [ "$VERBOSE" = true ] && echo "---"
-    bash -c "$CMD"
+
+    if [ "$ASK" = true ]; then
+        MSG="QUESTION: Do you want to run previous command?"
+        read -p "$MSG [Y/n]? " -n 1 -r 
+        [ "$VERBOSE" = true ] && echo    # (optional) move to a new line
+    else
+        REPLY="y"
+    fi
+    if [[ $REPLY =~ ^[1Yy]$ ]]; then
+        bash -c "$CMD"
+    fi
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
@@ -295,7 +314,7 @@ if [[ "$COMMAND" =~ ^(debug|info)$ ]]; then
 elif [ "$COMMAND" == "up" ]; then
     EXTRACMDS="$DETACHCMD $BUILDCMD"
 elif [ "$COMMAND" == "rm -f " ]; then
-    CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME stop $SERVICENAME"
+    CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $PROFILE stop $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "Running command [$CMD $SERVICEDESC]"
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run previous command?"
