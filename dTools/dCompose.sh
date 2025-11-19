@@ -15,6 +15,8 @@ SCRIPTNAME=$BASH_SOURCE
 if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"; fi
 BASEDIR=$(dirname "$SCRIPTNAME")
 
+
+
 # \t-v: Do not show verbose info                                                                        \n
 VERBOSE=true
 VERBOSECMD=""
@@ -32,7 +34,7 @@ PRECOMMAND=""
 # \t-d: Do not detach                                                                                   \n
 DETACHCMD="--detach"
 # \t<Service to use>: def. all. Name of the Service to perform the command on.                          \n
-SERVICENAME=""
+SERVICECLUE=""
 SERVICEDESC=""
 # \t[-y|--yes]: No confirmation questions are asked \n
 ASK=true
@@ -47,7 +49,7 @@ PROFILE=""
 # \t-p <Project name>: Deploy the docker compose as a project with the given name                 \n
 PROJECTNAME=""
 # \t-env <envFile>: Specifies a custom .env file (def=.env)                                       \n
-ENVFILE=""
+ENVFILECLUE=""
 #############################
 ## Functions               ##
 #############################
@@ -67,7 +69,7 @@ function help() {
             \t[-pdir | --project-directory <Project directory>]: def. Folder where the docker-compose is located                                          \n
             \t-pr | --profile: Profile to use in the docker compose deployment \n
             \t-p <Project name>: Deploy the docker compose as a project with the given name                                       \n
-            \t-env <envFile>: Specifies a custom .env file (def=.env)                                                             \n
+            \t-env <ENVFILECLUE>: Specifies a custom .env file (def=.env)                                                             \n
             \t-b: Build the docker compose images                                                                                 \n
             \t-d: Do not detach                                                                                                   \n
 	        \t<command>: Command to be executed: One of ($COMMANDSAVAILABLE)                                                      \n
@@ -75,11 +77,9 @@ function help() {
     echo $HELP
 }
 
-
 ##############################
 ## Main code                ##
 ##############################
-
 # getopts arguments
 while true; do
     [[ "$#" -eq 0 ]] && break;
@@ -119,7 +119,7 @@ while true; do
             PROFILE=$2
             shift ; shift ;;
         -env | --env-file ) 
-            ENVFILE=$2
+            ENVFILECLUE=$2
             shift ; shift ;;
         -dc ) 
             DOCKERCOMPOSE_CMD=$2
@@ -136,10 +136,13 @@ while true; do
             if [[ $1 == -* && $1 != --* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            elif [[ $1 == --* ]]; then
+                echo -e $(help "ERROR: Unknown parameter [$1]");
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#COMMAND}" -eq 0; then
                 COMMAND=$1
-            elif test "${#SERVICENAME}" -eq 0; then
-                SERVICENAME=$1;
+            elif test "${#SERVICECLUE}" -eq 0; then
+                SERVICECLUE=$1;
             fi
             shift;;
     esac
@@ -148,17 +151,16 @@ done
 [[ "${#COMMAND}" -eq 0 ]] && COMMAND="up";
 if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]];
 then
-    if test "${#SERVICENAME}" -ne 0; then
-        # Swapping is done between COMMAND AND SERVICENAME
-        TMP=$SERVICENAME
-        SERVICENAME=$COMMAND
+    if test "${#SERVICECLUE}" -ne 0; then
+        # Swapping is done between COMMAND AND SERVICECLUE
+        TMP=$SERVICECLUE
+        SERVICECLUE=$COMMAND
         COMMAND=$TMP
-        if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]];
-        then
-            COMMAND=$SERVICENAME
-            SERVICENAME=$TMP
-        fi
+    else
+        SERVICECLUE=$COMMAND
+        COMMAND="up"
     fi
+    
     if [[ ! ${COMMANDSAVAILABLE[@]} =~ " $COMMAND " ]]; then
         echo -e $(help "ERROR: Command [$COMMAND] must be one of [$COMMANDSAVAILABLE]");
         if [ "$CALLMODE" == "executed" ]; then exit 1; else return 1; fi
@@ -181,6 +183,23 @@ if [ "$USEDFCLUE" = true ]; then
     fi
     if ! test -f "$DOCKERCOMPOSE_FILE"; then 
         echo -e $(help "ERROR: docker compose file $DOCKERCOMPOSE_FILE must exist");
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    fi
+fi
+
+if test "${#ENVFILECLUE}" -gt 0; then
+    if ! test -f "$ENVFILECLUE"; then 
+    # echo "ENVFILECLUE [$ENVFILECLUE] does not exist. Trying to get it from folder [$FOLDER_VALUES]";
+        ENVFILE=$(_fGetFile "$FOLDER_VALUES" true "$ENVFILECLUE" true "$FOLDER_VALUES");
+        ENVFILEDESC="$ENVFILE (found using clue $ENVFILECLUE)"
+        # echo "envFile result=[$ENVFILE]"
+    else
+        ENVFILE="$ENVFILECLUE"
+    fi
+fi
+if test "${#ENVFILE}" -gt 0; then
+    if ! test -f "$ENVFILE"; then 
+        echo -e $(help "ERROR: env file $ENVFILECLUE must exist or be a clue to find it in folder $FOLDER_VALUES or its subfolders");
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
 fi
@@ -216,16 +235,26 @@ fi
 [[ "${#PROJECTDIR}" -gt 0 ]] && PROJECTDIR="--project-directory \"$PROJECTDIR\"";
 [[ "$COMMAND" =~ ^(debug|info)$ ]] && COMMAND="info";
 
-CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR $PROFILE config --services"
-# echo "CMD=$CMD" > /dev/tty;
-SERVICES=$(eval $CMD)
+    # local DOCKERCOMPOSE_FILE="$1"
+    # local SERVICECLUE="$2"
+    # local ENVFILE="$3"
+    # local PROJECTDIR="$4"
+    # local PROFILE="$5"
+# echo "Service clue: $SERVICECLUE" > /dev/tty
+RET=$( $BASEDIR/dServices.sh "$DOCKERCOMPOSE_FILE" "$SERVICECLUE" "$ENVFILE" "$PROJECTDIR" "$PROFILE");
 RC=$?; 
 if test "$RC" -ne 0; then 
-    echo -e "---\nError running command1 [${CMD}]"
-    echo -e $(help "ERROR: Docker compose services retrieval returned error $RC")
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
-SERVICES=" $(echo $SERVICES | sed 's/\n//g') "
+# echo "RET=${RET}" > /dev/tty
+SERVICES="${RET%%|*}"
+SERVICENAME="${RET##*|}"
+# echo "SERVICENAME=$SERVICENAME" > /dev/tty
+# echo "SERVICES=$SERVICES" > /dev/tty
+if test "${#SERVICENAME}" -gt 0; then 
+    SERVICESDESC="[$SERVICENAME] extracted from [$SERVICECLUE]"
+    # echo "SERVICESDESC=$SERVICESDESC" > /dev/tty
+fi
 
 if [[ "$COMMAND" =~ ^(up|start|install|u)$ ]]; then
     COMMAND="up";
@@ -244,13 +273,13 @@ if [ "$COMMAND" == "info" ] || [ "$VERBOSE" == true ]; then
     echo "- DOCKERCOMPOSE_FILE=[$DC_FILEDESC]"
     echo "- PROJECTDIR=[$PROJECTDIR]"
     echo "- PROJECTNAME=[$PROJECTNAME]"
-    echo "- ENVFILE=[$ENVFILE]"
+    echo "- ENVFILE=$ENVFILEDESC"
     echo "- PROFILE=[$PROFILE]"
     echo "- COMMAND=[$COMMAND]"
     echo "- BUILD=[$BUILDCMD]"
     echo "- DETACH=[$DETACHCMD]"
     echo "- SERVICES IN DOCKERCOMPOSE=[$SERVICES]"
-    echo "- SERVICENAME=[$SERVICENAME]"
+    echo "- SERVICENAME=$SERVICESDESC"
 fi
 
 
@@ -314,6 +343,21 @@ if [[ "$COMMAND" =~ ^(debug|info)$ ]]; then
 elif [ "$COMMAND" == "up" ]; then
     EXTRACMDS="$DETACHCMD $BUILDCMD"
 elif [ "$COMMAND" == "rm -f " ]; then
+    # Checks if the service is running, in that case, stop it first
+    getComponents_result=$( $BASEDIR/_dGetContainers.sh "ps" true "$SERVICENAME" "delete" false);
+    RC=$?; 
+    if test "$RC" -ne 0; then 
+        echo "ERROR: $getComponents_result"; > /dev/tty
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    elif test "${#getComponents_result}" -eq 0; then
+        echo "No active pod found matching [$SERVICENAME]"; > /dev/tty
+        # Selected not to use the artifacts
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    else    
+        PODNAME=$getComponents_result;
+    fi
+
+
     CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $PROFILE stop $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "Running command [$CMD $SERVICEDESC]"
     if [ "$ASK" = true ]; then
@@ -331,10 +375,11 @@ elif [ "$COMMAND" == "rm -f " ]; then
             echo -e $(help "ERROR: Stopping service $SERVICENAME");
             [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
         fi
+        ASK=false
     fi
 fi
 
-CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME  $PROFILE $COMMAND $EXTRACMDS $SERVICENAME"
+CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME  $PROFILE $COMMAND  $SERVICENAME $EXTRACMDS"
 [ "$VERBOSE" = true ] && echo -e "---\nRunning CMD=$CMD $SERVICEDESC"
 if [ "$ASK" = true ]; then
     MSG="QUESTION: Do you want to run the previous command?"
