@@ -8,22 +8,28 @@
 #          Carlos Gonzalez Muñoz                    cgonzalez@ita.es
 # All rights reserved 
 #********************************************************************************
-# USAGE dServices: Syntax dServices <dockerFilePath> [<serviceClue>] [<projectDir>] [<envFile>] [<profile>]
+# USAGE dServices: Syntax dServices <dockerFilePath> [<serviceClue>] [<verbose>] [<projectDir>] [<envFile>] [<profile>]
 #       If more than a service matches the serviceClue, an interactive selection is presented to the user to choose one
 # Returns the services matching the <serviceClue> in format servicesFound|serviceSelected
 if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"; fi
 
 if test "$#" -lt 1; then
     # export getContainers_result=
-    echo "Error dService: Syntax Syntax dServices <dockerFilePath> [<serviceClue>] [<projectDir>] [<envFile>] [<profile>]" > /dev/tty;
+    echo "Error dService: Syntax Syntax dServices <dockerFilePath> [<serviceClue>] [<verbose>] [<projectDir>] [<envFile>] [<profile>]" > /dev/tty;
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi;
-DOCKERCOMPOSE_FILE="$1"
-SERVICECLUE="$2"
-PROJECTDIR="$3"
-ENVFILE="$4"
-PROFILE="$5"
-
+DOCKERCOMPOSE_FILE=$(echo "\"${1-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+SERVICECLUE=$(echo "\"${2-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+VERBOSE=${3-false}
+PROJECTDIR=$(echo "\"${4-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+ENVFILE=$(echo "\"${5-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+PROFILES=$(echo "\"${6-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+# [ "$VERBOSE" = true ] && echo "\$1=$1" > /dev/tty;
+# [ "$VERBOSE" = true ] && echo "\$2=$2" > /dev/tty;
+# [ "$VERBOSE" = true ] && echo "\$3=$3" > /dev/tty;
+# [ "$VERBOSE" = true ] && echo "\$4=$4" > /dev/tty;
+# [ "$VERBOSE" = true ] && echo "\$5=$5" > /dev/tty;
+# [ "$VERBOSE" = true ] && echo "\$6=$6" > /dev/tty;
 DOCKERCOMPOSE_CMD="docker compose"
 if [[ -z "${DOCKERCOMPOSE_CMD}" ]]; then
     # Sets the proper docker compose command
@@ -39,8 +45,10 @@ if [[ -z "${DOCKERCOMPOSE_CMD}" ]]; then
     fi
 fi
 
-CMD="$DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR $PROFILE config --services"
-# echo "CMD=$CMD" > /dev/tty;
+PRECOMMAND=""
+[ "${#PROFILES}" -gt 0 ] && PRECOMMAND="COMPOSE_PROFILES=$PROFILES"
+CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR config --services"
+[ "$VERBOSE" = true ] && echo "Running CMD=$CMD" > /dev/tty;
 SERVICES=$(eval $CMD)
 RC=$?; 
 if test "$RC" -ne 0; then 
@@ -50,7 +58,6 @@ if test "$RC" -ne 0; then
 fi
 
 if test "${#SERVICECLUE}" -gt 0; then 
-    # echo "Services in docker compose: [$SERVICES]" > /dev/tty;
     FILTERED_SERVICES=$(printf '%s\n' "$SERVICES" | grep -F -- "$SERVICECLUE" || true)
     # echo "Services in docker compose matching $SERVICECLUE: [$FILTERED_SERVICES]" > /dev/tty;
     SERVICES=" $(echo $SERVICES | sed 's/\n//g') "
@@ -105,4 +112,6 @@ if test "${#SERVICECLUE}" -gt 0; then
         # echo "Selected service: [$SERVICENAME]" > /dev/tty
     fi
 fi
+SERVICES=" $(echo $SERVICES | sed 's/\n//g') "
+[ "$VERBOSE" = true ] && echo "Services in docker compose: [$SERVICES]" > /dev/tty;
 echo "$SERVICES|$SERVICENAME"

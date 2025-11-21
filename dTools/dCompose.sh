@@ -45,7 +45,7 @@ COMMANDSAVAILABLE=" up start install u down stop del d restart r debug info "
 # \tpdir <Project directory>: def. Folder where the docker-compose is located   \n
 PROJECTDIR=""
 # \t-pr | --profile: Profile to use in the docker compose deployment \n
-PROFILE=""
+PROFILES=""
 # \t-p <Project name>: Deploy the docker compose as a project with the given name                 \n
 PROJECTNAME=""
 # \t-env <envFile>: Specifies a custom .env file (def=.env)                                       \n
@@ -67,7 +67,7 @@ function help() {
             \t-dc <dockerCompose command>: docker-compose*, docker compose, ...                                                   \n
             \t                    export DOCKERCOMPOSE_CMD=<DockerComposeCommnad> to avoid having to repeat it on this commands   \n
             \t[-pdir | --project-directory <Project directory>]: def. Folder where the docker-compose is located                                          \n
-            \t-pr | --profile: Profile to use in the docker compose deployment \n
+            \t-pr | --profile: Profiles (using comma separation) to use in the docker compose deployment \n
             \t-p <Project name>: Deploy the docker compose as a project with the given name                                       \n
             \t-env <ENVFILECLUE>: Specifies a custom .env file (def=.env)                                                             \n
             \t-b: Build the docker compose images                                                                                 \n
@@ -116,7 +116,10 @@ while true; do
             PROJECTDIR=$2
             shift ; shift ;;
         -pr | --profile ) 
-            PROFILE=$2
+            if [ "${#PROFILES}" -eq 0 ]; then
+                PROFILES="\"$2\""
+                PRECOMMAND="$PRECOMMAND COMPOSE_PROFILES=$PROFILES"
+            fi
             shift ; shift ;;
         -env | --env-file ) 
             ENVFILECLUE=$2
@@ -128,7 +131,7 @@ while true; do
             PROJECTNAME=$2
             shift; shift ;;
         -b | --build ) 
-            PRECOMMAND="BUILDKIT_PROGRESS=plain "
+            PRECOMMAND="$PRECOMMAND BUILDKIT_PROGRESS=plain COMPOSE_BAKE=true"
             BUILDCMD="--build"; shift ;;
         -d | --detach ) 
             DETACHCMD=""; shift ;;            
@@ -230,7 +233,7 @@ if [[ "${#DOCKERCOMPOSE_FILE}" -gt 0 ]]; then
     DOCKERCOMPOSE_FILE=$(echo "$DOCKERCOMPOSE_FILE" | sed 's/ /\\ /g')
 fi
 [[ "${#PROJECTNAME}" -gt 0 ]] && PROJECTNAME="-p $PROJECTNAME";
-[[ "${#PROFILE}" -gt 0 ]] && PROFILE="--profile $PROFILE";
+[[ "${#PROFILES}" -gt 0 ]] && PROFILES="$PROFILES";
 [[ "${#ENVFILE}" -gt 0 ]] && ENVFILE="--env-file \"$ENVFILE\"";
 [[ "${#PROJECTDIR}" -gt 0 ]] && PROJECTDIR="--project-directory \"$PROJECTDIR\"";
 [[ "$COMMAND" =~ ^(debug|info)$ ]] && COMMAND="info";
@@ -239,9 +242,9 @@ fi
     # local SERVICECLUE="$2"
     # local ENVFILE="$3"
     # local PROJECTDIR="$4"
-    # local PROFILE="$5"
+    # local PROFILES="$5"
 # echo "Service clue: $SERVICECLUE" > /dev/tty
-RET=$( $BASEDIR/dServices.sh "$DOCKERCOMPOSE_FILE" "$SERVICECLUE" "$ENVFILE" "$PROJECTDIR" "$PROFILE");
+RET=$( $BASEDIR/dServices.sh "$DOCKERCOMPOSE_FILE" "$SERVICECLUE" "$VERBOSE" "$ENVFILE" "$PROJECTDIR" "$PROFILES");
 RC=$?; 
 if test "$RC" -ne 0; then 
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
@@ -274,7 +277,7 @@ if [ "$COMMAND" == "info" ] || [ "$VERBOSE" == true ]; then
     echo "- PROJECTDIR=[$PROJECTDIR]"
     echo "- PROJECTNAME=[$PROJECTNAME]"
     echo "- ENVFILE=$ENVFILEDESC"
-    echo "- PROFILE=[$PROFILE]"
+    echo "- PROFILES=[$PROFILES]"
     echo "- COMMAND=[$COMMAND]"
     echo "- BUILD=[$BUILDCMD]"
     echo "- DETACH=[$DETACHCMD]"
@@ -287,7 +290,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     COMMAND="restart";
     ASKPARAM="-y"
     [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
-    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM down $SERVICENAME"
+    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM -pr $PROFILES down $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run previous command?"
@@ -298,12 +301,13 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     fi
     if [[ $REPLY =~ ^[1Yy]$ ]]; then
         bash -c "$CMD"
-        RC=$?; 
-        if test "$RC" -ne 0; then 
-            [ "$VERBOSE" = true ] && echo "---"
-            echo -e $(help "ERROR: Stopping service $SERVICENAME");
-            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-        fi 
+        # Error is not checked as it will fail if the service is not running
+        # RC=$?; 
+        # if test "$RC" -ne 0; then 
+        #     [ "$VERBOSE" = true ] && echo "---"
+        #     echo -e $(help "ERROR: Stopping service $SERVICENAME");
+        #     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+        # fi 
         sleep 1
     fi
     # Chapuza para invertir el flag detach
@@ -312,7 +316,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     else
         DETACHCMD=""
     fi
-    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $PROFILE $ASKPARAM up $SERVICENAME"
+    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME -pr $PROFILES $ASKPARAM -pr $PROFILES up $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
     [ "$VERBOSE" = true ] && echo "---"
 
@@ -358,7 +362,7 @@ elif [ "$COMMAND" == "rm -f " ]; then
     fi
 
 
-    CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $PROFILE stop $SERVICENAME"
+    CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME stop $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "Running command [$CMD $SERVICEDESC]"
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run previous command?"
@@ -379,7 +383,7 @@ elif [ "$COMMAND" == "rm -f " ]; then
     fi
 fi
 
-CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME  $PROFILE $COMMAND  $SERVICENAME $EXTRACMDS"
+CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME  $COMMAND  $SERVICENAME $EXTRACMDS"
 [ "$VERBOSE" = true ] && echo -e "---\nRunning CMD=$CMD $SERVICEDESC"
 if [ "$ASK" = true ]; then
     MSG="QUESTION: Do you want to run the previous command?"
