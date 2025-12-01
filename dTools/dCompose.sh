@@ -233,7 +233,7 @@ if [[ "${#DOCKERCOMPOSE_FILE}" -gt 0 ]]; then
     DOCKERCOMPOSE_FILE=$(echo "$DOCKERCOMPOSE_FILE" | sed 's/ /\\ /g')
 fi
 [[ "${#PROJECTNAME}" -gt 0 ]] && PROJECTNAME="-p $PROJECTNAME";
-[[ "${#PROFILES}" -gt 0 ]] && PROFILES="$PROFILES";
+[[ "${#PROFILES}" -gt 0 ]] && PROFILES2="-pr $PROFILES";
 [[ "${#ENVFILE}" -gt 0 ]] && ENVFILE="--env-file \"$ENVFILE\"";
 [[ "${#PROJECTDIR}" -gt 0 ]] && PROJECTDIR="--project-directory \"$PROJECTDIR\"";
 [[ "$COMMAND" =~ ^(debug|info)$ ]] && COMMAND="info";
@@ -290,7 +290,8 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     COMMAND="restart";
     ASKPARAM="-y"
     [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
-    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM -pr $PROFILES down $SERVICENAME"
+
+    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM $PROFILES2 down $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run previous command?"
@@ -316,7 +317,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     else
         DETACHCMD=""
     fi
-    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME -pr $PROFILES $ASKPARAM -pr $PROFILES up $SERVICENAME"
+    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $PROFILES2 $ASKPARAM $PROFILES2 up $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
     [ "$VERBOSE" = true ] && echo "---"
 

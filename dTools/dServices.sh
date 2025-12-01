@@ -48,8 +48,8 @@ fi
 PRECOMMAND=""
 [ "${#PROFILES}" -gt 0 ] && PRECOMMAND="COMPOSE_PROFILES=$PROFILES"
 CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR config --services"
-[ "$VERBOSE" = true ] && echo "Running CMD=$CMD" > /dev/tty;
-SERVICES=$(eval $CMD)
+[ "$VERBOSE" = true ] && echo "Running CMD=$CMD" 2>/dev/null > /dev/tty;
+SERVICES=$(eval $CMD 2>/dev/null)
 RC=$?; 
 if test "$RC" -ne 0; then 
     echo -e "---\nError running command1 [${CMD}]" > /dev/tty;
