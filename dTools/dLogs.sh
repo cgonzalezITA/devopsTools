@@ -76,10 +76,6 @@ while true; do
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            fi ;
-            if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
             elif test "${#PODCLUE}" -eq 0; then
                 # PODCLUE will be split into PODCLUE=opa and K8SARTIFACT=deploy
                 PODCLUE=$1
@@ -96,6 +92,7 @@ fi
 
 # Code
 getComponents_result=$( $BASEDIR/_dGetContainers.sh ps "$USECCLUE" "$PODCLUE" "Show logs" false "" "Looking for components to see its logs");
+echo "DEBUG: getComponents_result=[$getComponents_result]" > /dev/tty;
 RC=$?; 
 if test "$RC" -ne 0; then 
     echo -e $(help "  ERROR: $getComponents_result");

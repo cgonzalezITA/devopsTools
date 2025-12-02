@@ -34,13 +34,12 @@ function help() {
     if test "$#" -ge 1; then
         HELP="${1}\n"     
     fi
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <docker name clue> [<command:def: sh>]                         \n 
+    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <docker name clue> \n 
             \t-h: Show help info                                                                            \n
             \t[-y|--yes]: No confirmation questions are asked \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)      \n
             \t-v: Do not show verbose info                                                                  \n
-            \t<componet name clue>: Clue to identify the running docker                                     \n
-	    \t<command>: Command to be executed inside the pod (def rm)"
+            \t<componet name clue>: Clue to identify the running docker"
     echo $HELP
 }
 
@@ -70,9 +69,7 @@ while true; do
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             elif test "${#PODCLUE}" -eq 0; then
                 PODCLUE=$1;
-            elif test "${#COMMAND}" -eq 0; then
-                COMMAND=$1;
-            fi ;
+            fi
             shift ;;
     esac
 done
@@ -103,17 +100,17 @@ if [ "$VERBOSE" = true ]; then
     echo "  COMMAND=[$COMMAND]"
 fi
 
+CMD="docker $COMMAND -f $PODNAME"
+echo INFO: Running COMMAND [$CMD] > /dev/tty;
 if [ "$ASK" = true ]; then
     MSG="QUESTION: Really sure to delete container [$PODNAME]?"
-    echo "---"
+    echo "---" > /dev/tty;
     read -p "$MSG. Should I go ahead [Y/n]? " -n 1 -r
     echo > /dev/tty;
 else REPLY="y"; fi
 
 if [[ $REPLY =~ ^[1Yy]$ ]]; then
-    CMD="docker $COMMAND -f $PODNAME"
-    echo INFO: Running COMMAND [$CMD]
-    echo "---"
+    echo "---" > /dev/tty;
     bash -c "$CMD"
     RC=$?; 
     if test "$RC" -ne 0; then 
