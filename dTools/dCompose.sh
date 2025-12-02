@@ -249,7 +249,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     COMMAND="restart";
     ASKPARAM="-y"
     [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
-    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME $ASKPARAM down $SERVICENAME"
+    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME -dc \"$DOCKERCOMPOSE_CMD\" $ASKPARAM down $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run previous command?"
@@ -273,7 +273,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
         else
             DETACHCMD=""
         fi
-        CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $ASKPARAM up $SERVICENAME"
+        CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME -dc \"$DOCKERCOMPOSE_CMD\" $ASKPARAM up $SERVICENAME"
         [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
         if [ "$ASK" = true ]; then
             MSG="QUESTION: Do you want to run previous command?"
