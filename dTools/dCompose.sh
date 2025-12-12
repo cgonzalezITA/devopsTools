@@ -33,7 +33,7 @@ BUILDCMD=""
 PRECOMMAND=""
 # \t-d: Do not detach                                                                                   \n
 DETACHCMD="--detach"
-# \t<Service to use>: def. all. Name of the Service to perform the command on.                          \n
+# \t<Service to use>: def. all. Clue name of the Service to perform the command on.                          \n
 SERVICECLUE=""
 SERVICEDESC=""
 # \t[-y|--yes]: No confirmation questions are asked \n
@@ -73,7 +73,7 @@ function help() {
             \t-b: Build the docker compose images                                                                                 \n
             \t-d: Do not detach                                                                                                   \n
 	        \t<command>: Command to be executed: One of ($COMMANDSAVAILABLE)                                                      \n
-            \t<Service to use>: def. all. Name of the Service to perform the command on."
+            \t<Service to use>: def. all. Clue name of the Service to perform the command on."
     echo $HELP
 }
 
@@ -198,6 +198,7 @@ if test "${#ENVFILECLUE}" -gt 0; then
         # echo "envFile result=[$ENVFILE]"
     else
         ENVFILE="$ENVFILECLUE"
+        ENVFILEDESC="$ENVFILE"
     fi
 fi
 if test "${#ENVFILE}" -gt 0; then
