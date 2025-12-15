@@ -110,13 +110,39 @@ EOF
     if [ $(readAnswer "Install kubectl if not installed (y*|n)" 'n') == 'y' ]; then
         if ! command -v kubectl &> /dev/null; then
             echo "❌ kubectl not found. Installing latest version..."
-            
-            curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
+           
+            # Exit immediately if a command exits with a non-zero status.
+            set -e
+
+            echo "--- Step 1: Installing dependencies and ensuring system is up-to-date ---"
+            sudo apt update
+            sudo apt install -y apt-transport-https ca-certificates curl gpg
+
+            echo ""
+            echo "--- Step 2: Downloading and adding the Kubernetes GPG key ---"
+            # Download and detach the GPG key
+            curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+            sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+            echo ""
+            echo "--- Step 3: Adding the Kubernetes APT repository (v1.30 stream) ---"
+            # Add the repository definition
+            echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+
+            echo ""
+            echo "--- Step 4: Updating package index and installing kubectl ---"
+            sudo apt update
+            sudo apt install -y kubectl
+
+            echo ""
+            echo "--- Installation complete! Verifying version ---"
+            # kubectl version --client
+
+            echo "Script finished successfully. kubectl is now installed."
+            # sudo mv kubectl /usr/local/bin/
         fi
-        if ! command -v kubectl &> /dev/null; then
-            echo "✅🆗 kubectl is already installed: $(kubectl version --client --short)"
+        if command -v kubectl version --client&> /dev/null; then
+            echo "✅🆗 kubectl is already installed: $(kubectl version --client)"
         fi
     fi
 
