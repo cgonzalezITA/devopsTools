@@ -76,10 +76,6 @@ while true; do
             if [[ $1 == -* ]]; then
                 echo -e $(help "ERROR: Unknown parameter [$1]");
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-            fi ;
-            if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
             elif test "${#PODCLUE}" -eq 0; then
                 # PODCLUE will be split into PODCLUE=opa and K8SARTIFACT=deploy
                 PODCLUE=$1
@@ -96,6 +92,7 @@ fi
 
 # Code
 getComponents_result=$( $BASEDIR/_dGetContainers.sh ps "$USECCLUE" "$PODCLUE" "Show logs" false "" "Looking for components to see its logs");
+# echo "DEBUG: getComponents_result=[$getComponents_result]" > /dev/tty;
 RC=$?; 
 if test "$RC" -ne 0; then 
     echo -e $(help "  ERROR: $getComponents_result");
@@ -136,7 +133,7 @@ fi
 
 echo "---"
 function run() {
-    CMD="docker logs $SINCEARG -f $PODNAME"
+    CMD="docker logs $SINCEARG -f $PODNAME 2>&1"
     CMD=${CMD}${GREPEXCLUDE}
     MSG="  Running command [${CMD}]"
     if [ "$DOWAIT" = true ]; then
@@ -146,6 +143,6 @@ function run() {
     else
         echo -e $MSG
     fi
-    bash -c "$CMD"
+    bash -c "$CMD";
 }
 run

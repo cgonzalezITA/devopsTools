@@ -80,6 +80,7 @@ REMEMBER: Create TLS Certificates (Transport Layer Security).
 helm repo add <repoName> <url>
   # Examples:
   # helm repo add bitnami https://charts.bitnami.com/bitnami
+  # helm repo add neo4j https://helm.neo4j.com/neo4j
 
 # View the names of the downloaded repos
 helm repo list  
@@ -97,6 +98,7 @@ helm repo update <repo>
 # Search all the versions for a repo/chart
 helm search repo <repoName>/<chartName> --versions  
   # Examples:
+  # helm search repo neo4j/neo4j-reverse-proxy
   # helm search repo bitnami/keycloak --versions
   # helm search repo bitnami/mongo --versions
   # helm search repo bitnami/jupyterhub --versions

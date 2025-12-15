@@ -91,7 +91,7 @@ EOF
             echo -e "❌\ninstall yq"
             wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./yq && chmod +x ./yq && sudo mv ./yq /usr/bin
         else
-            echo ✅🆗
+            echo ✅ jq is installed $(yq --version)
         fi
     fi
 
@@ -102,11 +102,10 @@ EOF
             echo -e "❌\ninstall yq"
             sudo apt-get install jq
         else
-            echo ✅🆗
+            echo ✅ jq is installed $(jq --version)
         fi
     fi
 
-    
     if [ $(readAnswer "Install kubectl if not installed (y*|n)" 'n') == 'y' ]; then
         if ! command -v kubectl &> /dev/null; then
             echo "❌ kubectl not found. Installing latest version..."
@@ -143,6 +142,29 @@ EOF
         fi
         if command -v kubectl version --client&> /dev/null; then
             echo "✅🆗 kubectl is already installed: $(kubectl version --client)"
+        fi
+    fi
+
+    if [ $(readAnswer "Install microk8s if not installed (Select n*, or phase 1 of installation). Choose n|1" 'n') == '1' ]; then
+        echo "Checking microk8s (phase 1) is installed"
+        VERSION=$(microk8s kubectl get pods 2>/dev/null)
+        if [[ "$?" -ne 0 ]]; then
+            echo -e "❌\ninstall microk8s (phase 1)"
+            echo -e "After this phase finished, rerun the script '$SCRIPTNAME'"
+            $BASEDIR/installMicrok8s.sh 1
+            # sudo apt-get install jq
+        else
+            echo "✅ microk8s (phase 1) seems to be installed"
+        fi
+    fi
+    if [ $(readAnswer "Install microk8s if not installed (Select n*, phase 2 of installation). Choose n|2" 'n') == '2' ]; then
+        echo "Checking microk8s (phase 2) is installed"
+        VERSION=$(kubectl get pods 2>/dev/null)
+        if [[ "$?" -ne 0 ]]; then
+            echo -e "❌\ninstall microk8s (phase 2)"
+            $BASEDIR/installMicrok8s.sh 2
+        else
+            echo "✅ microk8s (phase 2) seems to be installed"
         fi
     fi
 

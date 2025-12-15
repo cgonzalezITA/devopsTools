@@ -81,7 +81,7 @@ elif test "$NTIEMS" -eq 1; then
         while IFS= read -r line ; do 
             ITEMS="$ITEMS$line|"; 
             ITEM=$(bash -c "$CMDWITHGREP | grep $line$");
-            echo "$IDX-$ITEM" | grep "$CCLUE" | egrep --color=auto  "$line|$"> /dev/tty; 
+            # echo "$IDX-$ITEM" | grep "$CCLUE" | egrep --color=auto  "$line|$"> /dev/tty; 
             IDX=$((++IDX)); 
         done <<< "$CNAME"
         read -p "  $ACTIONDESC. Do you want to [$COMMAND] container [${array[0]}]? ('y/n')" -n 1 -r
