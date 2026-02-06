@@ -30,7 +30,7 @@ COMMAND=delete
 COMMANDSAVAILABLE=" d delete r restart "
 # \t-a <artifact>: used to access no standard kubernete artifacts (challenges, clusterissuer, ...)      \n
 K8SARTIFACT=""
-ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume ns namespace "
+ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume ns namespace storageclass "
 # \t-fs: Force process  match the given clue (using this, the clue is not a clue, but the name)       \n
 USECCLUE=true
 CCLUE=""
