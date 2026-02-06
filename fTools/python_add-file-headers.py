@@ -44,10 +44,10 @@ def is_header_missing( jsonLanguage, f, headerLines):
         else:
             return True
 
-def get_src_files(jsonLanguage, dirname, headerLines):
+def get_src_files(jsonLanguage, dirname, headerLines, includeSubDirs: bool= False):
     src_files = []
     for cur, _dirs, files in os.walk(dirname):
-        if cur == dirname:
+        if cur == dirname or includeSubDirs:
             [src_files.append(path.join(cur,f)) for f in files if is_src_file(jsonLanguage, f)]
 
     return src_files, [f for f in src_files if is_header_missing(jsonLanguage, f, headerLines)]
@@ -74,17 +74,17 @@ def add_headers(jsonLanguage, files, headerLines):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("usage: %s <language> <header file> <root dir>" % sys.argv[0])
+    if len(sys.argv) < 5:
+        print("usage: %s <language> <header file> <root dir> <includeSubDirs>" % sys.argv[0])
         exit()
 
     args = sys.argv # [path.abspath(arg) for arg in sys.argv]
-    root_path = path.abspath(args[3])
-
     language= args[1]
     header = open(args[2]).read().lstrip().rstrip()
+    root_path = path.abspath(args[3])
+    includeSubdir = bool(args[4])
     headerLines = header.splitlines()
-    totalFiles, filesWithoutHeader = get_src_files(src_extensions[language], root_path, headerLines)
+    totalFiles, filesWithoutHeader = get_src_files(src_extensions[language], root_path, headerLines, includeSubdir)
 
     print("Header: ")
     print(header)
