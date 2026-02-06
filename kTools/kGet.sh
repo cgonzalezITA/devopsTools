@@ -33,8 +33,8 @@ CCLUE=""
 USECCLUE=true
 # \t-fvn: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
 USENSCCLUE=true
-ARTIFACTS="pod svc deployment statefulset ingress configmap job networkpolicy pvc storageclass "
-ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume ns namespace storageclass "
+ARTIFACTS="pod svc deployment statefulset ingress configmap job networkpolicy pvc storageclass cronjob "
+ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume ns namespace storageclass cronjob "
 OUTPUTFORMATS=" yaml json wide "
 # \t-o <outputFormat>: One of [$OUTPUTFORMATS] \n
 OUTPUTFORMAT=""

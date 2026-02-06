@@ -35,7 +35,7 @@ USENSCCLUE=true
 # \t-c <container name>: Container inside the pod target of the command.                                \n
 CARG=""
 CCOMPONENT=""
-ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume storageclass "
+ARTIFACTSFULLNAMES=" all pod pods svc service services deploy deployment deployments statefulset statefulsets ingress ingresses cm configmap configmaps secret secrets job jobs networkpolicy networkpolicies pvc persistentvolumeclaim pv persistentvolume storageclass cronjob "
 # \t-a <artifact>: used to access no standard kubernete artifacts (challenges, clusterissuer, ...)           \n
 K8SARTIFACT=""
 #############################
