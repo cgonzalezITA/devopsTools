@@ -81,6 +81,9 @@ FVALUES=""
 USEFVALUESCLUE=true
 # \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag and dbg command are set)\n
 OUTPUTFILE=""
+# \t[-w|--wait_4_restart] <WAIT_FOR_RESTART_SECONDS>: Seconds to wait till the helm is started at the restart steps.
+WAIT_FOR_RESTART_SECONDS="1"
+
 #############################
 ## Functions               ##
 #############################
@@ -102,6 +105,7 @@ function help() {
             \t[-y|--yes]: No confirmation questions are asked \n
             \t-b: Runs a dependency build command that is required for umbrella charts for being updated          \n
             \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag and dbg command are set) \n
+            \t[-w|--wait_4_restart] <WAIT_FOR_RESTART_SECONDS>: Seconds to wait till the helm is started at the restart steps. \n
             \t<component clue>: Clue to identify the artifact file name. all to run command on all yaml files     \n
             \t[<command>] Command to be executed against the artifact file. Use one of [$COMMANDNAMES]"
                                                                             
@@ -132,6 +136,10 @@ while true; do
             ASK=false
             COMMAND="debug"
             echo > ${OUTPUTFILE:-/dev/stdout}
+            shift ; shift ;;
+        # \t[-w|--wait_4_restart] <WAIT_FOR_RESTART_SECONDS>: Seconds to wait till the helm is started at the restart steps.
+        -w | --wait_4_restart )
+            WAIT_FOR_RESTART_SECONDS=$2
             shift ; shift ;;
         -fv | --forcevalue ) 
             USECCLUE=false; shift ;;
@@ -469,7 +477,7 @@ elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     eval "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
     [ "$VERBOSE" = true ] && echo -e "# ---\n# INFO: 2. Installing helm [$CNAME]:" >> ${OUTPUTFILE:-/dev/stdout}
-    sleep 1
+    sleep $WAIT_FOR_RESTART_SECONDS
 
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
     [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
