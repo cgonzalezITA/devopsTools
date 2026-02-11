@@ -16,6 +16,8 @@ if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"
 BASEDIR=$(dirname "$SCRIPTNAME")
 VERBOSE=true
 SUBMODULE=""
+# \t[-y|--yes]: No confirmation questions are asked \n
+ASK=true
 
 # \t-v: Do not show verbose info                                                    \n
 VERBOSE=true
@@ -41,6 +43,7 @@ function help() {
         \t, https://www.baeldung.com/ops/git-assume-unchanged-skip-worktree                                      \n
         \t---                                                                                                    \n
         \t-h: Show help info                                                                                     \n
+        \t[-y|--yes]: No confirmation questions are asked \n
         \t-v: Do not show verbose info                                                                           \n
         \t-f <fileWithFiles2BFrozen>: def .gitfrozen. File with the files to be frozen                           \n
         \t<action:freeze*|f|unfreeze|u|stash|unstash>: Specifies one action to perform over the files            \n
@@ -71,10 +74,12 @@ while true; do
              [ "$CALLMODE" == "executed" ] && exit -1 || return -1; ;;
         -v | --verbose ) 
             VERBOSE=false; shift ;;
+        -y | --yes ) 
+            ASK=false; shift ;;
         -f ) 
             FILESWITHFILES2BFROZEN=$2
-            if ! test -d $FILESWITHFILES2BFROZEN; then 
-                echo -e $(help "ERROR: File [$SUBMODULE] must exist"); 
+            if ! test -f $FILESWITHFILES2BFROZEN; then 
+                echo -e $(help "ERROR: File $FILESWITHFILES2BFROZEN must exist"); 
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
              fi
             shift ; shift ;;
@@ -107,23 +112,19 @@ fi
 if [ "$VERBOSE" = true ]; then
     echo "  - GITROOTFOLDER= [$GITROOTFOLDER]"
     echo "  - ACTION= [$ACTION]"
-    echo "  - FILESWITHFILES2BFROZEN= [$FILESWITHFILES2BFROZEN]"
-fi
-
-if ! test -f $FILESWITHFILES2BFROZEN; then 
-    echo -e $(help "No file to be [$ACTION] has been found: $FILESWITHFILES2BFROZEN does not exist")
-    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    echo "  - FILESWITHFILES2BFROZEN= $FILESWITHFILES2BFROZEN"
 fi
 
 FILES=""
 NFILES=0
 while IFS= read -r file; do 
     file="$GITROOTFOLDER/$file"
+    # echo "file=$file"
     if test -f "$file"; then 
         FILES="$FILES \"$file\""
         NFILES=$(($NFILES+1))
     else
-        echo -e $(help "ERROR: File [$file] does not exist. Please review the file [$FILESWITHFILES2BFROZEN]")
+        echo -e $(help "ERROR: File [$file] does not exist. Please review the file $FILESWITHFILES2BFROZEN. It must contain the names of the files to be [$ACTION]")
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
 done < <(cat $FILESWITHFILES2BFROZEN; echo)
@@ -136,7 +137,16 @@ elif [ "$VERBOSE" = true ]; then
 
 fi
 
-if [ "$ACTION" == "--skip-worktree" ] || [ "$ACTION" == "--no-skip-worktree" ]; then
+if [ "$ACTION" == "info" ]; then
+    echo "List of frozen files:"
+    CMD="git ls-files -v | grep '^S'"
+    echo "Running command [$CMD]"
+    PWD1=$(pwd)
+    cd $GITROOTFOLDER
+    bash -c "$CMD"
+    cd $PWD1
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+elif [ "$ACTION" == "--skip-worktree" ] || [ "$ACTION" == "--no-skip-worktree" ]; then
     CMD1="git update-index $ACTION $FILES"; 
     CMD2=""
 elif [ "$ACTION" == "stash" ] || [ "$ACTION" == "unstash" ]; then
@@ -149,19 +159,35 @@ elif [ "$ACTION" == "stash" ] || [ "$ACTION" == "unstash" ]; then
     fi
 fi
 
-if [ "$VERBOSE" = true ]; then
-    echo -e "  Running command [$CMD1]"; 
-    bash -c "$CMD1"; 
+if [ "$ASK" = true ]; then
+    if [ ! -z "${CMD1}" ]; then
+        echo -e "  1st. Run command [$CMD1]"; 
+    fi
+    if [ ! -z "${CMD2}" ]; then
+        echo -e "  2nd. Run command [$CMD2]"; 
+    fi
+    MSG=$(echo "QUESTION: Are you sure to run the previous command/s [Y/n]?")
+    read -p "$MSG" -n 1 -r
+    echo    # (optional) move to a new line
+else
+    REPLY="y"
 fi
-if [ "$VERBOSE" = true ] && test "${#CMD2}" -gt 0; then
-    echo -e "  Running command [$CMD2]"; 
-    bash -c "$CMD2"; 
-fi
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    if [ "$VERBOSE" = true ]; then
+        bash -c "$CMD1"; 
+    fi
+    if [ "$VERBOSE" = true ] && test "${#CMD2}" -gt 0; then
+        bash -c "$CMD2"; 
+    fi
 
-if [ "$VERBOSE" = true ]; then
-    echo "List of frozen files after command/s:"
-    PWD1=$(pwd)
-    cd $GITROOTFOLDER
-    git ls-files -v | grep '^S'
-    cd $PWD1
+    if [ "$VERBOSE" = true ]; then
+        echo "List of frozen files after command/s:"
+        PWD1=$(pwd)
+        cd $GITROOTFOLDER
+        CMD="git ls-files -v | grep '^S'"
+        echo "Running command [$CMD]"
+        eval $CMD
+        cd $PWD1
+    fi
 fi
