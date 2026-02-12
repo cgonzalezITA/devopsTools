@@ -101,12 +101,17 @@ if test "${#ACTION}" -eq 0; then
 ACTION="f"
 fi
 if [[ ! ${ACTIONS[@]} =~ " $ACTION " ]];  then
-    echo -e $(help "ERROR: Unknown action. It must be one of [$ACTIONS]")
+    echo -e $(help "ERROR: Unknown action $ACTION. It must be one of [$ACTIONS]")
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-elif [ "$ACTION" == "f" ]; then
-    ACTION="--skip-worktree"        
-elif [ "$ACTION" == "u" ]; then
-    ACTION="--no-skip-worktree"        
+else
+    case "$ACTION" in 
+        freeze|f)
+        ACTION="--skip-worktree" 
+        ;;
+        unfreeze|u)
+        ACTION="--no-skip-worktree" 
+        ;;
+    esac
 fi
 
 if [ "$VERBOSE" = true ]; then
