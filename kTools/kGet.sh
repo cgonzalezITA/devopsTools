@@ -228,9 +228,11 @@ fi
 
 if ! test "${#OUTPUTFORMAT}" -eq 0; then
     # For get commands with -o an k8s artifact has to be provided
-    CMD="kubectl $COMMAND $K8SARTIFACT $PATTERN4COMMAND $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
+    CMD_BASE="kubectl $COMMAND $K8SARTIFACT $PATTERN4COMMAND $NAMESPACEARG $OUTPUTFORMAT"
+    CMD="$CMD_BASE $GREPK8SCMD"
 else
-    CMD="kubectl $COMMAND $K8SARTIFACT  $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
+    CMD_BASE="kubectl $COMMAND $K8SARTIFACT  $NAMESPACEARG $OUTPUTFORMAT"
+    CMD="$CMD_BASE $GREPK8SCMD"
 fi
 if [ "$WATCH" = true ]; then
     CMD="watch \"$CMD"\"
@@ -239,7 +241,11 @@ fi
 if [ "$VERBOSE" = true ]; then
     MSG="[$NSCLUE] -> [$NAMESPACE]"
     if [[ "$DEF_KTOOLS_NAMESPACE_USED" ]]; then MSG="$MSG. Taken from  DEF_KTOOLS_NAMESPACE=[$DEF_KTOOLS_NAMESPACE]"; fi
-    echo -e "# NAMESPACE=$MSG" | egrep --color=auto  $NSCLUE
+    if test "${#NSCLUE}" -eq 0; then         
+        echo -e "# NAMESPACE=$MSG"
+    else
+        echo -e "# NAMESPACE=$MSG" | egrep --color=auto  $NSCLUE
+    fi
     echo "# K8SARTIFACT=[$K8SARTIFACT]"| egrep --color=auto  $K8SARTIFACT
     CMD1="echo -e  '# K8S_COMPONENTNAME=[$CCLUE]->$PATTERNDESC' $GREPCMD"
     bash -c "$CMD1"
@@ -249,7 +255,32 @@ if [ "$VERBOSE" = true ]; then
     fi
     echo "VERBOSE=[$ASK]" 
     echo "WATCH=[$WATCH]"
-    echo "#   Running command [$CMD]"
+    if [[ "$K8SARTIFACT" =~ ^(cm|configmap|configmaps)$ ]] && 
+       [[ "$OUTPUTFORMAT" =~ ^(-o json)$ ]]; then
+        echo "---";
+        if [ "$ASK" = true ]; then
+            read -p "#   Do you want to get just the file names of the configmap [$CCLUE]? (y/n) " -n 1 -r
+            echo "";
+        else
+             REPLY="y"
+        fi
+        if [[ $REPLY =~ ^[Y|y]$ ]]; then
+            CMD1="$CMD_BASE | jq -r '.data | keys[]'"
+            echo "#   Running command [$CMD1]"
+            eval "$CMD1"
+            echo "---";
+            if [ "$ASK" = true ]; then
+                read -p "#   Do you want to get the full json of the configmap [$CCLUE]? (y/n) " -n 1 -r
+                echo "";
+            else
+                REPLY="y"
+            fi
+            if [[ $REPLY =~ ^[N|n]$ ]]; then
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            fi
+        fi
+    fi
+    echo -e "---\n#   Running command [$CMD]"
 fi
 
 
