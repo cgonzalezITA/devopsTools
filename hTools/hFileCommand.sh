@@ -476,8 +476,11 @@ elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG --verbose -fv \"$FCONFIG\" $FVALUESCMD delete"
     [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     eval "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
+    if [ "$WAIT_FOR_RESTART_SECONDS" -gt 1 ]; then
+        [ "$VERBOSE" = true ] && echo -e "#  > WAIT_FOR_RESTART_SECONDS=$WAIT_FOR_RESTART_SECONDS..."
+        sleep $WAIT_FOR_RESTART_SECONDS
+    fi
     [ "$VERBOSE" = true ] && echo -e "# ---\n# INFO: 2. Installing helm [$CNAME]:" >> ${OUTPUTFILE:-/dev/stdout}
-    sleep $WAIT_FOR_RESTART_SECONDS
 
     CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
     [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
