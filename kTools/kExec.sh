@@ -38,12 +38,9 @@ COMMAND=""
 #############################
 ## Functions               ##
 #############################
-function help() {
-    if test "$#" -ge 1; then
-        HELP="${1}\n"     
-    fi
+function help() {    
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <k8s componet name clue> [-- <command:def: sh>]                   \n 
+    HELP="HELP: USAGE: $SCRIPTNAME [optArgs] <k8s componet name clue> [-- <command:def: sh>]                   \n 
             \t-h: Show help info                                                                                   \n
             \t-fv: Force value match the given clue (using this, the clue is not a clue, but the name)             \n
             \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)   \n
@@ -55,6 +52,9 @@ function help() {
             \t\t (used when several containers are deployed during pod initialization. eg. initContainers)         \n
             \t<k8s componet name clue>: Clue to identify the artifact file name                                    \n
 	    \t<command>: Command to be executed inside the pod (def /bin/bash)"
+    if test "$#" -ge 1; then
+        HELP="$HELP\n${1}"
+    fi
     echo $HELP
 }
 
@@ -91,20 +91,22 @@ while true; do
             shift ;;
         * ) 
             if [[ $1 == -* && $1 != --* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+                echo -e "WARNING: Unknown parameter [$1]";
             elif test "${#CCLUE}" -eq 0; then
-                CCLUE=$1
-                shift;
+                if [[ "$1" == *"/"* ]]; then
+                    K8SARTIFACT=$(echo "$1" | cut -d'/' -f1)
+                    CCLUE=$(echo "$1" | cut -d'/' -f2)                    
+                else
+                    CCLUE=$1
+                fi
             elif [[ $1 == --* ]]; then                 
                 COMMAND=${1:2};
                 shift;
                 [[ "$#" -eq 0 ]] && break;
                 COMMAND="$COMMAND $@"
                 break;
-            else
-                shift;
-            fi ;;
+            fi;
+            shift ;;
     esac
 done
 
@@ -154,8 +156,8 @@ else
     CNAME=$getArtifact_result;
 fi
 
-
-CMD="kubectl exec -it $NAMESPACEARG $CNAME $CARG -- $COMMAND"
+COMMAND=$(echo "$COMMAND" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+CMD="kubectl exec -it $NAMESPACEARG $K8SARTIFACT/$CNAME $CARG -- $COMMAND"
 if [ "$VERBOSE" = true ]; then
     echo "---"
     echo "INFO: EXECUTING COMMAND [$COMMAND] inside [$K8SARTIFACT] [$CNAME] $NAMESPACEDESC"
@@ -164,11 +166,12 @@ if [ "$VERBOSE" = true ]; then
         MSG="$MSG. Taken from  DEF_KTOOLS_NAMESPACE=[$DEF_KTOOLS_NAMESPACE]"
     fi
     echo "  NAMESPACE=$MSG" | egrep --color=auto  "$NSCLUE" 
+    echo "  K8SARTIFACT=[$K8SARTIFACT]"
     echo "  CNAME    =[$CCLUE] -> [$CNAME]" | egrep --color=auto  "$CCLUE"
     echo "  COMMAND  =[$COMMAND]"
     echo "  COMPONENT=[${CCOMPONENT}]"
-    echo -e "  CONTAINERS IN POD [$CNAME]:     $(kubectl get $NAMESPACEARG $K8SARTIFACT $CNAME -o jsonpath='{.spec.containers[*].name}')" | egrep --color=auto  "$CCOMPONENT"
-    echo -e "  INITCONTAINERS IN POD [$CNAME]: $(kubectl get $NAMESPACEARG $K8SARTIFACT $CNAME -o jsonpath='{.spec.initContainers[*].name}')" | egrep --color=auto  "$CCOMPONENT"
+    echo -e "  CONTAINERS IN POD [$CNAME]:     $(kubectl get $NAMESPACEARG $K8SARTIFACT/$CNAME -o jsonpath='{.spec.containers[*].name}')" | egrep --color=auto  "$CCOMPONENT"
+    echo -e "  INITCONTAINERS IN POD [$CNAME]: $(kubectl get $NAMESPACEARG $K8SARTIFACT/$CNAME -o jsonpath='{.spec.initContainers[*].name}')" | egrep --color=auto  "$CCOMPONENT"
     echo "  Running command [${CMD}]"
     echo "---"
 fi
@@ -183,7 +186,7 @@ if test "$RC" -eq 126; then
         read -p "$MSG. Do you want to try [$COMMAND] instead? ('y/n')" -n 1 -r
         echo "";
         if [[ $REPLY =~ ^[Y|y]$ ]]; then 
-            CMD="kubectl exec -it $NAMESPACEARG $CNAME $CARG -- \"$COMMAND\""
+            CMD="kubectl exec -it $NAMESPACEARG $K8SARTIFACT/$CNAME $CARG -- \"$COMMAND\""
             echo "  Running command [${CMD}]"
             echo "---"
             bash -c "$CMD"

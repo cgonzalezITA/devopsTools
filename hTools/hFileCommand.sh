@@ -50,6 +50,8 @@ NAMESPACEDESC="in default namespace."
 NAMESPACEARG=""
 # \t-cf: Config name pattern (def.config.*) This file contains details of the helm chart: name, ns, chart\n
 CONFIGNAME_PATTERN=config.*
+# \t-rbi|--runBeforeInstall <cmd>: Run the command before the helm install/upgrade command \n
+RUNBEFOREINSTALL=""
 # \t-v: Do not show verbose info                                                                        \n
 VERBOSE=true
 # \t[<command>] Command to be executed against the artifact file: apply*|delete|restart"
@@ -62,6 +64,7 @@ COMMANDSDEBUG=" debug dbg "
 COMMANDSTEST=" test t "
 COMMANDSIDEBUG=" idebug "
 COMMANDNAMES=" $COMMANDSINSTALL $COMMANDSDELETE $COMMANDSRESTART $COMMANDSUPGRADE $COMMANDSDEBUG $COMMANDSTEST $COMMANDSIDEBUG "
+COMMANDINSTALLUPGRADE=" $COMMANDSINSTALL $COMMANDSUPGRADE "
 # \t-hf <folder with helm config>: Folder where the config file must be located (def value: ./HValues    \n
 FOLDER_HELMBASE=./Helms
 # \t-fv: Force secretname match the given clue (using this, the clue is not a clue, but the name)       \n
@@ -88,11 +91,7 @@ WAIT_FOR_RESTART_SECONDS="1"
 ## Functions               ##
 #############################
 function help() {
-    HELP=""
-    if test "$#" -ge 1; then
-        HELP="${1}\n"     
-    fi
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<command>]\n 
+    HELP="HELP: USAGE: $SCRIPTNAME [optArgs] <component clue> [<command>]\n 
             \t-h: Show help info                                                                                  \n
             \t-n <NamespaceClue>: Specifies a clue of the namespace to be used                                    \n
             \t-fnv: Force namespace name match the given clue (using this, the clue is not a clue, but the name)  \n
@@ -104,10 +103,14 @@ function help() {
             \t-v: Do not show verbose info                                                                        \n
             \t[-y|--yes]: No confirmation questions are asked \n
             \t-b: Runs a dependency build command that is required for umbrella charts for being updated          \n
+            \t-rbi|--runBeforeInstall <cmd>: Run the command before the helm install/upgrade command \n
             \t[-o|--output] <outputFile>: Writes the content into the <outputFile> (-y flag and dbg command are set) \n
             \t[-w|--wait_4_restart] <WAIT_FOR_RESTART_SECONDS>: Seconds to wait till the helm is started at the restart steps. \n
             \t<component clue>: Clue to identify the artifact file name. all to run command on all yaml files     \n
             \t[<command>] Command to be executed against the artifact file. Use one of [$COMMANDNAMES]"
+    if test "$#" -ge 1; then
+        HELP="${1}\n$HELP"     
+    fi
                                                                             
     echo $HELP
 }
@@ -158,6 +161,10 @@ while true; do
             # \t-cf: Config name pattern (def.config.*) This file contains details of the helm chart: name, ns, chart\n
             CONFIGNAME_PATTERN=$2;
             shift ; shift ;;
+        -rbi | --runBeforeInstall )
+            # \t-rbi|--runBeforeInstall <cmd>: Run the command before the helm install/upgrade command \n
+            RUNBEFOREINSTALL=$2;
+            shift ; shift ;;
         -hf ) 
             FOLDER_HELMBASE=$2
             shift ; shift ;;
@@ -168,8 +175,7 @@ while true; do
             shift ; shift ;;
         * ) 
             if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
+                echo -e "WARNING: Unknown parameter [$1]";
             elif test "${#CCLUE}" -eq 0; then
                 CCLUE=$1
                 CCLUEORIG=$1
@@ -429,6 +435,9 @@ if [ "$VERBOSE" = true ]; then
     if test "${#BUILDCMD}" -gt 0; then 
         echo -e "#  >BUILD=$BUILDCMD" >> ${OUTPUTFILE:-/dev/stdout}; 
     fi
+    if test "${#RUNBEFOREINSTALL}" -gt 0; then 
+        echo -e "#  >RUNBEFOREINSTALL=$RUNBEFOREINSTALL" >> ${OUTPUTFILE:-/dev/stdout}; 
+    fi
     echo -e "#  >ASK=[$ASK]"  >> ${OUTPUTFILE:-/dev/stdout}
     echo -e "#  >OUTPUTFILE=[$OUTPUTFILE]"  >> ${OUTPUTFILE:-/dev/stdout}
     echo "#  ---"  >> ${OUTPUTFILE:-/dev/stdout}
@@ -460,7 +469,6 @@ fi
 # echo -e "# INFO: Executing helm command [$COMMAND] using values from file [$FVALUES] for component [$CNAME] and chart [$CCHART] $VERSIONDESC $NAMESPACEDESC"
 
 
-
 if [[ $COMMANDSTEST =~ " $COMMAND " ]]; then
     CMD="helm $NAMESPACEARG install -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG --create-namespace"
     [ "$VERBOSE" = true ] && echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
@@ -482,7 +490,10 @@ elif [[ $COMMANDSRESTART =~ " $COMMAND " ]]; then
     fi
     [ "$VERBOSE" = true ] && echo -e "# ---\n# INFO: 2. Installing helm [$CNAME]:" >> ${OUTPUTFILE:-/dev/stdout}
 
-    CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
+    if  [[ "$RUNBEFOREINSTALL" != "" ]]; then
+        RUNBEFOREINSTALL="--runBeforeInstall $RUNBEFOREINSTALL"
+    fi
+    CMD="$SCRIPTNAME $ASKFLAG -fnv $NAMESPACEARG $RUNBEFOREINSTALL $BUILDCMD --verbose -fv '$FCONFIG' $FVALUESCMD install"
     [ "$VERBOSE" = true ] && echo -e "# Running command [$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     bash -c "$CMD" >> ${OUTPUTFILE:-/dev/stdout}
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
@@ -527,6 +538,22 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
         COMMAND="install --debug"
         CMD="helm $NAMESPACEARG $COMMAND -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG 2>&1"
     elif [[ ${COMMANDS2INSTALL[@]} =~ " $COMMAND " ]];  then
+        if  [[ "$RUNBEFOREINSTALL" != "" ]]; then
+
+            [ "$VERBOSE" = true ] || [ "$ASK" = true ] && echo -e "# INFO: Running command before helm $COMMAND: [$RUNBEFOREINSTALL]" >> ${OUTPUTFILE:-/dev/stdout}
+            if [ "$ASK" = true ]; then
+                MSG=$(echo "# QUESTION: Do you want to run this previous command before [$COMMAND] chart [$CCHART] $NAMESPACEDESC?")
+                echo $MSG  >> ${OUTPUTFILE:-/dev/stdout} #> /dev/tty
+                read -p "sure [Y/n]? " -n 1 -r 
+                echo   >> ${OUTPUTFILE:-/dev/stdout} #> /dev/tty  # (optional) move to a new line
+            else
+                REPLY="y"
+            fi
+            if [[ $REPLY =~ ^[1Yy]$ ]]; then
+                eval $RUNBEFOREINSTALL >> ${OUTPUTFILE:-/dev/stdout}
+            fi
+        fi
+        
         CMD="helm $NAMESPACEARG $COMMAND -f \"$FVALUES\" $CNAME \"$CCHART\" $VERSIONARG --create-namespace"
     elif [ "$COMMAND" == "delete" ]; then
         # echo "# INFO: Deleting helm $CNAME..."
@@ -545,7 +572,7 @@ if [[ ${COMMANDS2ASK4CONFIRMATION[@]} =~ " $COMMAND " ]];  then
             # USE idebug (Install debug) to view the real k8s generated artifacts although this command will install the chart if correct" >> ${OUTPUTFILE:-/dev/stdout}
         fi
     fi
-    [ "$VERBOSE" = true ] && echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
+    [ "$VERBOSE" = true ] || [ "$ASK" = true ] && echo "# Running CMD=[$CMD]" >> ${OUTPUTFILE:-/dev/stdout}
     if [ "$ASK" = true ]; then
         MSG=$(echo "# QUESTION: Do you want to run this previous command to [$COMMAND] chart [$CCHART] $NAMESPACEDESC?" \
                     | sed "s/\($COMMAND\)/\x1b[31m\1\x1b[0m/g")

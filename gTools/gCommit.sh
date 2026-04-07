@@ -79,8 +79,7 @@ while true; do
             shift ; shift ;;
         * ) 
             if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+                echo -e "WARNING: Unknown parameter [$1]";
             elif test "${#C1}" -eq 0; then
                 C1=$1;
                 C="-m \"$C1\""
