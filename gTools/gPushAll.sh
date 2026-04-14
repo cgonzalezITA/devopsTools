@@ -56,8 +56,7 @@ while true; do
             FORCETAGFLAG=" --force "; shift ;;
         * )  
             if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+                echo -e "WARNING: Unknown parameter [$1]";
             fi ;
             shift ;;
     esac

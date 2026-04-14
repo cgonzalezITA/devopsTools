@@ -105,7 +105,7 @@ while true; do
         # catch all for unknown params or positional args
         * ) 
             if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
+                echo -e "WARNING: Unknown parameter [$1]";
             else
                 echo "Warning: Argument [$1] ignored";
             fi ;

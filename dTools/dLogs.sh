@@ -74,8 +74,7 @@ while true; do
             shift ; shift ;;
         * ) 
             if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+                echo -e "WARNING: Unknown parameter [$1]";
             elif test "${#PODCLUE}" -eq 0; then
                 # PODCLUE will be split into PODCLUE=opa and K8SARTIFACT=deploy
                 PODCLUE=$1

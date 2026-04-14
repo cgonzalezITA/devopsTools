@@ -72,10 +72,6 @@ while true; do
             [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             return 0;
             break ;;
-        # -f ) 
-        #     FOLDER_ARTIFACTS=$2
-        #     if ! test -d $FOLDER_ARTIFACTS;then echo -e $(help "ERROR: Folder [$FOLDER_ARTIFACTS] must exist");return -1; fi;
-        #     shift ; shift ;;
         -fv|--forcevalue) 
             USECCLUE=false; shift ;;
         -b) 
@@ -97,8 +93,7 @@ while true; do
             shift ; shift ;;
         * ) 
             if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+                echo -e "WARNING: Unknown parameter [$1]";
             elif test "${#CCLUE}" -eq 0; then
                 CCLUE=$1;
             elif test "${#SECTION}" -eq 0; then
@@ -164,9 +159,13 @@ if [ "$VERBOSE" = true ]; then
         echo "FIELDNAME=$FIELDNAME"
     fi
     echo "BASE64 encoding used=[$USEBASE64]"
+    echo "VERBOSE=$VERBOSE"
+    echo "ASK=$ASK"
     echo "---"
 fi
-ITEMS=$( kubectl get $NAMESPACEARG secrets $CNAME -o json | jq --arg v "$SECTION" '.[$v]')
+CMD="kubectl get $NAMESPACEARG secrets $CNAME -o json | jq --arg v "$SECTION" '.[$v]'"
+[ "$VERBOSE" = true ] && echo "Running CMD=[$CMD]";
+ITEMS=$( kubectl get $NAMESPACEARG secrets $CNAME -o json | jq --arg v "$SECTION" '.[$v]' );
 NITEMS=$( echo $ITEMS | jq length)
 KEYS=$( echo $ITEMS | jq ' keys | .[]' | tr -d ' ' | tr '\n' ' ' )
 KEYS=" $KEYS"
@@ -178,16 +177,13 @@ if test ${#FIELDNAME} -gt 0; then
     else
         FIELDNAME=$(echo $FIELDNAME | sed 's|\.|\\\.|g')
         CMD="kubectl get $NAMESPACEARG secrets $CNAME -o jsonpath='{.data.$FIELDNAME}' | base64 -d"
-        if [ "$VERBOSE" = true ]; then
-            echo "Running CMD=[$CMD]"
-        fi
+        [ "$VERBOSE" = true ] && echo "Running CMD=[$CMD]";
         eval $CMD
     fi
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 
-if [ "$VERBOSE" = true ]; then 
-    echo -e "Found [$NITEMS] field in the section [$SECTION] of the secret [$CNAME]:\n\t[$KEYS]"; fi
+[ "$VERBOSE" = true ] && echo -e "Found [$NITEMS] field in the section [$SECTION] of the secret [$CNAME]:\n\t[$KEYS]";
 IDX=0
 for key in "${array[@]}"; do
     IDX=$((++IDX))

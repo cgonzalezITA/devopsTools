@@ -49,7 +49,7 @@ if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"
         else
             echo $CNAME
         fi
-        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+        [ "$CALLMODE" == "executed" ] && exit 0 || return 0;
     fi
     ITEMS=()
     IDX=1

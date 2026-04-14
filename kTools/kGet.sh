@@ -48,11 +48,8 @@ WATCH=false
 ## Functions               ##
 #############################
 function help() {
-    if test "$#" -ge 1; then
-        HELP="${1}\n"     
-    fi
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] [<k8s artifact>:pod*|all|service|challenge|ingres|...] [<component clue>] \n 
+    HELP="HELP: USAGE: $SCRIPTNAME [optArgs] [<k8s artifact>:pod*|all|service|challenge|ingres|...] [<component clue>] \n 
             \t-h: Show help info                                                                                       \n
             \t-a <artifact>: used to access no standard kubernete artifacts (challenges, clusterissuer, ...)           \n
             \t[-y|--yes]: No confirmation questions are asked \n
@@ -67,7 +64,10 @@ function help() {
             \t[-w|--watch]: Watch the command using the watch tool: watch <cmd> \n
             \t[<component clue>]: Clue to identify the artifact file name|all                                          \n
             \t[<k8s artifact>]: k8s Artifact to show info about. Values: pod*, all, svc, ...                           \n
-            \n[<component clue>] and [<k8s artifact>] can in some context be swapped to match existing artifacts"
+            \tNOTE: [<component clue>] and [<k8s artifact>] can in some context be swapped to match existing artifacts"
+    if test "$#" -ge 1; then
+        HELP="$HELP\n${1}"
+    fi
     echo $HELP
 }
 
@@ -113,9 +113,8 @@ while true; do
             NSCLUE="default"
             shift ;;
         * ) 
-            if [[ $1 == -* ]]; then
-                echo -e $(help "ERROR: Unknown parameter [$1]");
-                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            if [[ $1 == -* && $1 != --* ]]; then
+                echo -e "WARNING: Unknown parameter [$1]";
             elif test "${#CCLUE}" -eq 0; then
                 # CCLUE deploy/opa will be split into CCLUE=opa and K8SARTIFACT=deploy
                 if [[ "$1" == *"/"* ]]; then
@@ -206,7 +205,7 @@ elif [[ "$OUTPUTFORMAT" =~ ^(-o yaml|-o json)$ ]]; then
     getArtifact_result=$( $BASEDIR/_kGetArtifact.sh $K8SARTIFACT "$USECCLUE" "$CCLUE" "$NAMESPACEARG" "get a k8s [$K8SARTIFACT]" false )
     RC=$?; 
     if test "$RC" -ne 0; then 
-        echo -e $(help "  ERROR: $getArtifact_result");
+        echo -e $(help "  ERROR ($RC): $getArtifact_result");
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     elif test "${#getArtifact_result}" -eq 0; then
         echo -e $(help "  ERROR: -o option [$OUTPUTFORMAT] requires a k8s component's name. None was given");
@@ -228,9 +227,11 @@ fi
 
 if ! test "${#OUTPUTFORMAT}" -eq 0; then
     # For get commands with -o an k8s artifact has to be provided
-    CMD="kubectl $COMMAND $K8SARTIFACT $PATTERN4COMMAND $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
+    CMD_BASE="kubectl $COMMAND $K8SARTIFACT $PATTERN4COMMAND $NAMESPACEARG $OUTPUTFORMAT"
+    CMD="$CMD_BASE $GREPK8SCMD"
 else
-    CMD="kubectl $COMMAND $K8SARTIFACT  $NAMESPACEARG $OUTPUTFORMAT $GREPK8SCMD"
+    CMD_BASE="kubectl $COMMAND $K8SARTIFACT  $NAMESPACEARG $OUTPUTFORMAT"
+    CMD="$CMD_BASE $GREPK8SCMD"
 fi
 if [ "$WATCH" = true ]; then
     CMD="watch \"$CMD"\"
@@ -239,7 +240,11 @@ fi
 if [ "$VERBOSE" = true ]; then
     MSG="[$NSCLUE] -> [$NAMESPACE]"
     if [[ "$DEF_KTOOLS_NAMESPACE_USED" ]]; then MSG="$MSG. Taken from  DEF_KTOOLS_NAMESPACE=[$DEF_KTOOLS_NAMESPACE]"; fi
-    echo -e "# NAMESPACE=$MSG" | egrep --color=auto  $NSCLUE
+    if test "${#NSCLUE}" -eq 0; then         
+        echo -e "# NAMESPACE=$MSG"
+    else
+        echo -e "# NAMESPACE=$MSG" | egrep --color=auto  $NSCLUE
+    fi
     echo "# K8SARTIFACT=[$K8SARTIFACT]"| egrep --color=auto  $K8SARTIFACT
     CMD1="echo -e  '# K8S_COMPONENTNAME=[$CCLUE]->$PATTERNDESC' $GREPCMD"
     bash -c "$CMD1"
@@ -249,7 +254,32 @@ if [ "$VERBOSE" = true ]; then
     fi
     echo "VERBOSE=[$ASK]" 
     echo "WATCH=[$WATCH]"
-    echo "#   Running command [$CMD]"
+    if [[ "$K8SARTIFACT" =~ ^(cm|configmap|configmaps)$ ]] && 
+       [[ "$OUTPUTFORMAT" =~ ^(-o json)$ ]]; then
+        echo "---";
+        if [ "$ASK" = true ]; then
+            read -p "#   Do you want to get just the file names of the configmap [$CCLUE]? (y/n) " -n 1 -r
+            echo "";
+        else
+             REPLY="y"
+        fi
+        if [[ $REPLY =~ ^[Y|y]$ ]]; then
+            CMD1="$CMD_BASE | jq -r '.data | keys[]'"
+            echo "#   Running command [$CMD1]"
+            eval "$CMD1"
+            echo "---";
+            if [ "$ASK" = true ]; then
+                read -p "#   Do you want to get the full json of the configmap [$CCLUE]? (y/n) " -n 1 -r
+                echo "";
+            else
+                REPLY="y"
+            fi
+            if [[ $REPLY =~ ^[N|n]$ ]]; then
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            fi
+        fi
+    fi
+    echo -e "---\n#   Running command [$CMD]"
 fi
 
 
