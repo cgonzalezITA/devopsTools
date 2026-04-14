@@ -148,6 +148,36 @@ if [ "$SHOWHELP" = true ]; then
     [ "$CALLMODE" == "executed" ] && exit 0 || return 0;
 fi
 
+if [ "$PACKAGEMANAGER" == "conda" ]; then
+    command -v conda >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        MSG="WARNING: It seems that $PACKAGEMANAGER is not installed. Do you want to install it? (y/n)"
+        read -p "$MSG " -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+            bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
+            rm Miniconda3-latest-Linux-x86_64.sh
+            source $HOME/miniconda3/bin/activate
+            if [ $? -ne 0 ]; then
+                echo "ERROR: Failed to initialize conda. Please check the installation and try again."
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            fi
+            conda update -n base -c defaults conda
+            echo -e "TOS have to be accepted for the following channels:\n- https://repo.anaconda.com/pkgs/main\n- https://repo.anaconda.com/pkgs/r"
+            MSG="Do you want to accept them? (y/n)"
+            read -p "$MSG " -n 1 -r
+            echo    # (optional) move to a new line
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+                conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+            fi
+            conda init bash
+        else
+            echo "Continuing without $PACKAGEMANAGER may cause errors. Please consider installing it before using this script."
+        fi
+    fi
+fi
 if [ "$LISTENVS" = true ]; then
     echo "# Available envs in $ENVROOTFOLDER folder:"
     ls -1 "$ENVROOTFOLDER" | sed 's/^/- /'
@@ -170,9 +200,13 @@ if [ "$CREATE" = true ]; then
         else
             CMD="$PACKAGEMANAGER create -y -p $ENVROOTFOLDER/$ENVNAME"
         fi
+    fi
     echo "# Running command: [$CMD]"
     read -p "Press [ENTER] to continue or [CTRL+C] to abort"
-    $CMD        
+    $CMD
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create the python env. Please check the error message and try again."
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
 fi
 
