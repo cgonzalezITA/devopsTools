@@ -43,7 +43,7 @@ EXTRACMDS=""
 COMMANDSAVAILABLE=" up start install u down stop del d restart r debug info "
 
 # \tpdir <Project directory>: def. Folder where the docker-compose is located   \n
-PROJECTDIR=""
+PROJECTDIR="."
 # \t-pr | --profile: Profile to use in the docker compose deployment \n
 PROFILES=""
 # \t-p <Project name>: Deploy the docker compose as a project with the given name                 \n
@@ -66,10 +66,10 @@ function help() {
             \t-df <dockerCompose file>: def. docker-compose.yml                                                                   \n
             \t-dc <dockerCompose command>: docker-compose*, docker compose, ...                                                   \n
             \t                    export DOCKERCOMPOSE_CMD=<DockerComposeCommnad> to avoid having to repeat it on this commands   \n
-            \t[-pdir | --project-directory <Project directory>]: def. Folder where the docker-compose is located                                          \n
+            \t[-pdir | --project-directory <Project directory>]: def '.' Folder base to locate items   \n
             \t-pr | --profile: Profiles (using comma separation) to use in the docker compose deployment \n
             \t-p <Project name>: Deploy the docker compose as a project with the given name                                       \n
-            \t-env <ENVFILECLUE>: Specifies a custom .env file (def=.env)                                                             \n
+            \t-env <ENVFILECLUE>: Specifies a custom .env file (def=.env)                                                         \n
             \t-b: Build the docker compose images                                                                                 \n
             \t-d: Do not detach                                                                                                   \n
 	        \t<command>: Command to be executed: One of ($COMMANDSAVAILABLE)                                                      \n
