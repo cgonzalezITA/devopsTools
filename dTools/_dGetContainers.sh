@@ -46,11 +46,11 @@ fi
 CCOLUMNDEF="--format '$CUSTOMCOLUMN'"
 if [ "$USECCLUE" = true ]; then
     CMD=$( echo "docker $ARTIFACT -a $ARTIFACTLS $CCOLUMNDEF")
-    # echo "Running command $CMD"
+    # echo "Running command $CMD" > /dev/tty
     CNAME=$( bash -c "$CMD | grep $CCLUE")
 else
     CMD=$( echo "docker $ARTIFACT -a $ARTIFACTLS --filter 'name=$CCLUE' $CCOLUMNDEF 2> /dev/null")
-    # echo "Running command2 $CMD"
+    # echo "Running command2 $CMD" > /dev/tty
     CNAME=$( bash -c "$CMD | grep -w \"$CCLUE\"")
     RC=$?; 
     if test "$RC" -ne 0; then 
