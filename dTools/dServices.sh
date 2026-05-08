@@ -8,28 +8,47 @@
 #          Carlos Gonzalez Muñoz                    cgonzalez@ita.es
 # All rights reserved 
 #********************************************************************************
-# USAGE dServices: Syntax dServices <dockerFilePath> [<serviceClue>] [<verbose>] [<projectDir>] [<envFile>] [<profile>]
+# USAGE dServices: dServices --file dockerFile [--file dockerFile2 ...] [-s serviceClue] [-v] [-p <projectDir>] [-e <envFile>] [-pr <profile>]
 #       If more than a service matches the serviceClue, an interactive selection is presented to the user to choose one
 # Returns the services matching the <serviceClue> in format servicesFound|serviceSelected
 if [ "$0" == "$BASH_SOURCE" ]; then CALLMODE="executed"; else CALLMODE="sourced"; fi
 
-if test "$#" -lt 1; then
-    # export getContainers_result=
-    echo "Error dService: Syntax Syntax dServices <dockerFilePath> [<serviceClue>] [<verbose>] [<projectDir>] [<envFile>] [<profile>]" > /dev/tty;
+DOCKERCOMPOSE_FILE_ARGS=""
+SERVICECLUE=""
+VERBOSE=false
+PROJECTDIR=""
+ENVFILE=""
+PROFILES=""
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -f | --file )
+            DOCKERCOMPOSE_FILE_ARGS="$DOCKERCOMPOSE_FILE_ARGS -f $2"
+            shift; shift ;;
+        -s )
+            SERVICECLUE="$2"
+            shift; shift ;;
+        -v | --verbose )
+            VERBOSE=true
+            shift ;;
+        -p | --project-directory )
+            PROJECTDIR="--project-directory \"$2\""
+            shift; shift ;;
+        -e | --env-file )
+            ENVFILE="--env-file \"$2\""
+            shift; shift ;;
+        -pr | --profile )
+            PROFILES="$2"
+            shift; shift ;;
+        * )
+            echo "WARNING: Unknown parameter [$1]" > /dev/tty
+            shift ;;
+    esac
+done
+if [ "${#DOCKERCOMPOSE_FILE_ARGS}" -eq 0 ]; then
+    echo "Error dService: Syntax dServices --file dockerFile [--file dockerFile2 ...] [-s serviceClue] [-v] [-p <projectDir>] [-e <envFile>] [-pr <profile>]" > /dev/tty;
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-fi;
-DOCKERCOMPOSE_FILE=$(echo "\"${1-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
-SERVICECLUE=$(echo "\"${2-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
-VERBOSE=${3-false}
-PROJECTDIR=$(echo "\"${4-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
-ENVFILE=$(echo "\"${5-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
-PROFILES=$(echo "\"${6-}\"" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
-# [ "$VERBOSE" = true ] && echo "\$1=$1" > /dev/tty;
-# [ "$VERBOSE" = true ] && echo "\$2=$2" > /dev/tty;
-# [ "$VERBOSE" = true ] && echo "\$3=$3" > /dev/tty;
-# [ "$VERBOSE" = true ] && echo "\$4=$4" > /dev/tty;
-# [ "$VERBOSE" = true ] && echo "\$5=$5" > /dev/tty;
-# [ "$VERBOSE" = true ] && echo "\$6=$6" > /dev/tty;
+fi
 DOCKERCOMPOSE_CMD="docker compose"
 if [[ -z "${DOCKERCOMPOSE_CMD}" ]]; then
     # Sets the proper docker compose command
@@ -47,7 +66,7 @@ fi
 
 PRECOMMAND=""
 [ "${#PROFILES}" -gt 0 ] && PRECOMMAND="COMPOSE_PROFILES=$PROFILES"
-CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTNAME $ENVFILE $PROJECTDIR config --services"
+CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD $DOCKERCOMPOSE_FILE_ARGS $PROJECTNAME $ENVFILE $PROJECTDIR config --services"
 [ "$VERBOSE" = true ] && echo "Running CMD=$CMD" 2>/dev/null > /dev/tty;
 SERVICES=$(eval $CMD 2>/dev/null)
 RC=$?; 
