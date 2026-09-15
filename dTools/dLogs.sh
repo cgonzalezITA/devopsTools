@@ -114,7 +114,7 @@ fi
 
 echo "INFO: Showing logs of docker [$PODNAME]"
 if [ "$VERBOSE" = true ]; then
-    echo "  DOCKERNAME=[$PODCLUE] -> [$PODNAME]"
+    echo "  DOCKERNAME=[$PODNAME] -> from clue=[$PODCLUE]"
     echo "  SINCE=[${SINCEARG}]"
     echo "  STRING2EXCLUDE=$JSON2EXCLUDE"
 fi
@@ -125,8 +125,7 @@ fi
 NLINES=$(echo "$PODNAME" | wc -l)
 if test "$NLINES" -ne 1; then
     echo -e $(help "ERROR: Docker clue [$PODCLUE] is too generic. [$NLINES] matches have been found: [$PODNAME]")
-    echo -e "dockers with names similar to $PODCLUE:\n $(docker ps --format '{{.Names}}'| tac | grep $PODCLUE)"
-    echo -e "dockers with ids similar to $PODCLUE:\n $(docker ps --format '{{.ID}}'| tac | grep $PODCLUE)"
+    echo -e "dockers with names similar to '$PODCLUE'($NLINES):\n $(docker ps --format '{{.Names}}'| tac | grep $PODCLUE)"
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 fi
 

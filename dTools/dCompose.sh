@@ -22,11 +22,12 @@ VERBOSE=true
 VERBOSECMD=""
 # \t<command>: Command to be executed inside the pod"
 COMMAND=""
-# \t-f <folder with helm config>: Folder where the config file must be located (def value: ./HValues    \n
+# \t-dd | --dockerComposeDir <Directory with docker-compose file>: Folder where the config file must be located (def value: ./) \n
 FOLDER_VALUES=./
-# \t-df <dockerCompose file>: def. docker-compose.yml                                                   \n
+# \t-f | --file <dockerCompose file clue>: def. docker-compose.yml. Can be specified multiple times.            \n
 USEDFCLUE=true
-# \t[-ff | --forceFolder]: Restricts search of the docker-compose file just on the -f folder. def. false \n
+DOCKERCOMPOSE_FILE_CLUES=()
+# \t[-fd | --forceDirectory]: Restricts search of the docker-compose file just on the dockerComposeDir directory. def. false \n
 SEARCH_SUBFOLDERS=false
 # \t-b: Build the docker compose images                                                                 \n
 BUILDCMD=""
@@ -40,10 +41,10 @@ SERVICEDESC=""
 ASK=true
 
 EXTRACMDS=""
-COMMANDSAVAILABLE=" up start install u down stop del d restart r debug info "
+COMMANDSAVAILABLE=" up start install u down stop del d restart r debug info build "
 
 # \tpdir <Project directory>: def. Folder where the docker-compose is located   \n
-PROJECTDIR=""
+PROJECTDIR="."
 # \t-pr | --profile: Profile to use in the docker compose deployment \n
 PROFILES=""
 # \t-p <Project name>: Deploy the docker compose as a project with the given name                 \n
@@ -61,15 +62,15 @@ function help() {
     HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [optArgs] [<command:def: up>][<service2Use>]                                            \n 
             \t-h: Show help info; -v: Do not show verbose info \n
             \t[-y|--yes]: No confirmation questions are asked \n
-            \t-f <folder with docker-compose file>:                                                                               \n
-            \t[-ff | --forceFolder]: Restricts search of the docker-compose file just on the -f folder. def. false \n
-            \t-df <dockerCompose file>: def. docker-compose.yml                                                                   \n
+            \t-dd | --dockerComposeDir <Directory with docker-compose file>:                                                                               \n
+            \t[-fd | --forceDirectory]: Restricts search of the docker-compose file just on the dockerComposeDir directory. def. false \n
+            \t-f | --file <dockerCompose file clue>: def. docker-compose.yml. Can be repeated for multiple files.                          \n
             \t-dc <dockerCompose command>: docker-compose*, docker compose, ...                                                   \n
             \t                    export DOCKERCOMPOSE_CMD=<DockerComposeCommnad> to avoid having to repeat it on this commands   \n
-            \t[-pdir | --project-directory <Project directory>]: def. Folder where the docker-compose is located                                          \n
+            \t[-pdir | --project-directory <Project directory>]: def '.' Folder base to locate items   \n
             \t-pr | --profile: Profiles (using comma separation) to use in the docker compose deployment \n
             \t-p <Project name>: Deploy the docker compose as a project with the given name                                       \n
-            \t-env <ENVFILECLUE>: Specifies a custom .env file (def=.env)                                                             \n
+            \t-env <ENVFILECLUE>: Specifies a custom .env file (def=.env)                                                         \n
             \t-b: Build the docker compose images                                                                                 \n
             \t-d: Do not detach                                                                                                   \n
 	        \t<command>: Command to be executed: One of ($COMMANDSAVAILABLE)                                                      \n
@@ -96,7 +97,7 @@ while true; do
             # \t[-y|--yes]: No confirmation questions are asked \n
             ASK=false
             shift ;;
-        -f ) 
+        -dd | --dockerComposeDir ) 
             FOLDER_VALUES=$2
             SEARCH_SUBFOLDERS=false
             if ! test -d $FOLDER_VALUES; then 
@@ -104,13 +105,13 @@ while true; do
                 [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
             fi
             shift ; shift ;;
-        -ff | --forceFolder)
-            # \t[-ff | --forceFolder]: Restricts search of the docker-compose file just on the -f folder. def. false \n
+        -fd | --forceDirectory)
+            # \t[-fd | --forceDirectory]: Restricts search of the docker-compose file just on the dockerComposeDir directory. def. false \n
             SEARCH_SUBFOLDERS=true
             shift;;
-        -df ) 
+        -f | --file )
             USEDFCLUE=false
-            DOCKERCOMPOSE_FILE=$2
+            DOCKERCOMPOSE_FILE_CLUES+=("$2")
             shift ; shift ;;
         -pdir | --project-directory) 
             PROJECTDIR=$2
@@ -168,25 +169,42 @@ then
     fi
 fi
 
+shopt -s expand_aliases
+. ~/.bash_aliases
+DOCKERCOMPOSE_FILES=()
 if [ "$USEDFCLUE" = true ]; then
-    shopt -s expand_aliases
-    . ~/.bash_aliases
     getFileResult=$(_fGetFile "$FOLDER_VALUES" true "docker-compose.y*ml" "docker-compose" false $SEARCH_SUBFOLDERS);
-    RC=$?; 
-    if test "$RC" -ne 0; then 
+    RC=$?;
+    if test "$RC" -ne 0; then
         echo -e $(help "ERROR: $getFileResult");
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     elif test "${#getFileResult}" -eq 0; then
-        # Selected not to use the artifacts
-        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-    else    
-        DOCKERCOMPOSE_FILE=$getFileResult;
-    fi
-    if ! test -f "$DOCKERCOMPOSE_FILE"; then 
-        echo -e $(help "ERROR: docker compose file $DOCKERCOMPOSE_FILE must exist");
         [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
     fi
+    DOCKERCOMPOSE_FILES+=("$getFileResult")
+else
+    for CLUE in "${DOCKERCOMPOSE_FILE_CLUES[@]}"; do
+        if test -f "$CLUE"; then
+            DOCKERCOMPOSE_FILES+=("$CLUE")
+        else
+            getFileResult=$(_fGetFile "$FOLDER_VALUES" true "*${CLUE}*" "$CLUE" false $SEARCH_SUBFOLDERS);
+            RC=$?;
+            if test "$RC" -ne 0; then
+                echo -e $(help "ERROR: $getFileResult");
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            elif test "${#getFileResult}" -eq 0; then
+                [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+            fi
+            DOCKERCOMPOSE_FILES+=("$getFileResult")
+        fi
+    done
 fi
+for F in "${DOCKERCOMPOSE_FILES[@]}"; do
+    if ! test -f "$F"; then
+        echo -e $(help "ERROR: docker compose file $F must exist");
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    fi
+done
 
 if test "${#ENVFILECLUE}" -gt 0; then
     if ! test -f "$ENVFILECLUE"; then 
@@ -222,28 +240,44 @@ if [[ -z "${DOCKERCOMPOSE_CMD}" ]]; then
     fi
 fi
 
-if [[ "${#DOCKERCOMPOSE_FILE}" -gt 0 ]]; then
-    DC_FILEDESC=$DOCKERCOMPOSE_FILE;
-    if [ "${DOCKERCOMPOSE_FILE:0:1}" == "/" ]; then
-        DOCKERCOMPOSE_FILE="$DOCKERCOMPOSE_FILE";
+DOCKERCOMPOSE_FILE_ARGS=""
+DC_FILEDESC=""
+CWD="$(pwd)"
+for i in "${!DOCKERCOMPOSE_FILES[@]}"; do
+    F="${DOCKERCOMPOSE_FILES[$i]}"
+    if [ "${F:0:1}" == "/" ]; then
+        [[ "$F" == "$CWD/"* ]] && F="./${F#$CWD/}"
     else
-        DOCKERCOMPOSE_FILE="$(pwd)/$DOCKERCOMPOSE_FILE";
+        [[ "$F" != "./"* ]] && F="./$F"
     fi
-    DOCKERCOMPOSE_FILE=$(echo "$DOCKERCOMPOSE_FILE" | sed 's/ /\\ /g')
-fi
+    F=$(echo "$F" | sed 's/ /\\ /g')
+    DOCKERCOMPOSE_FILES[$i]="$F"
+    DOCKERCOMPOSE_FILE_ARGS="$DOCKERCOMPOSE_FILE_ARGS -f $F"
+    [[ "${#DC_FILEDESC}" -gt 0 ]] && DC_FILEDESC="$DC_FILEDESC, "
+    DC_FILEDESC="$DC_FILEDESC$F"
+done
+DOCKERCOMPOSE_FILE="${DOCKERCOMPOSE_FILES[0]}"
+ENVFILE_RAW="$ENVFILE"
+PROJECTDIR_RAW="$PROJECTDIR"
 [[ "${#PROJECTNAME}" -gt 0 ]] && PROJECTNAME="-p $PROJECTNAME";
 [[ "${#PROFILES}" -gt 0 ]] && PROFILES2="-pr $PROFILES";
 [[ "${#ENVFILE}" -gt 0 ]] && ENVFILE="--env-file \"$ENVFILE\"";
 [[ "${#PROJECTDIR}" -gt 0 ]] && PROJECTDIR="--project-directory \"$PROJECTDIR\"";
 [[ "$COMMAND" =~ ^(debug|info)$ ]] && COMMAND="info";
+if [ "$COMMAND" == "build" ]; then
+    PRECOMMAND="$PRECOMMAND BUILDKIT_PROGRESS=plain COMPOSE_BAKE=true"
+    BUILDCMD="--build"
+fi
 
-    # local DOCKERCOMPOSE_FILE="$1"
-    # local SERVICECLUE="$2"
-    # local ENVFILE="$3"
-    # local PROJECTDIR="$4"
-    # local PROFILES="$5"
-# echo "Service clue: $SERVICECLUE" > /dev/tty
-RET=$( $BASEDIR/dServices.sh "$DOCKERCOMPOSE_FILE" "$SERVICECLUE" "$VERBOSE" "$ENVFILE" "$PROJECTDIR" "$PROFILES");
+
+DSERVICES_ARGS=()
+for F in "${DOCKERCOMPOSE_FILES[@]}"; do DSERVICES_ARGS+=("--file" "$F"); done
+[ "${#SERVICECLUE}" -gt 0 ]   && DSERVICES_ARGS+=("-s"  "$SERVICECLUE")
+[ "$VERBOSE" = true ]          && DSERVICES_ARGS+=("-v")
+[ "${#ENVFILE_RAW}" -gt 0 ]   && DSERVICES_ARGS+=("-e"  "$ENVFILE_RAW")
+[ "${#PROJECTDIR_RAW}" -gt 0 ] && DSERVICES_ARGS+=("-p"  "$PROJECTDIR_RAW")
+[ "${#PROFILES}" -gt 0 ]       && DSERVICES_ARGS+=("-pr" "${PROFILES//\"/}")
+RET=$( $BASEDIR/dServices.sh "${DSERVICES_ARGS[@]}");
 RC=$?; 
 if test "$RC" -ne 0; then 
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
@@ -272,7 +306,7 @@ fi
 if [ "$COMMAND" == "info" ] || [ "$VERBOSE" == true ]; then
     echo "- ASK=[$ASK]"
     echo "- DOCKERCOMPOSE_CMD=[$DOCKERCOMPOSE_CMD ($DC_CMD_VERSION)]"
-    echo "- DOCKERCOMPOSE_FILE=[$DC_FILEDESC]"
+    echo "- DOCKERCOMPOSE_FILES=[$DC_FILEDESC]"
     echo "- PROJECTDIR=[$PROJECTDIR]"
     echo "- PROJECTNAME=[$PROJECTNAME]"
     echo "- ENVFILE=$ENVFILEDESC"
@@ -290,7 +324,8 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     ASKPARAM="-y"
     [ "$VERBOSE" = true ] && echo -e "---\n# INFO: Restarting docker compose $DC_FILEDESC $SERVICEDESC...";
 
-    CMD="$SCRIPTNAME -v -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME -dc \"$DOCKERCOMPOSE_CMD\" $ASKPARAM $PROFILES2 down $SERVICENAME"
+    DFARGS=""; for F in "${DOCKERCOMPOSE_FILES[@]}"; do DFARGS="$DFARGS --file $F"; done
+    CMD="$SCRIPTNAME -v $DFARGS $PROJECTDIR $ENVFILE $PROJECTNAME -dc \"$DOCKERCOMPOSE_CMD\" $ASKPARAM $PROFILES2 down $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 1/2 [${CMD}]";
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run previous command?"
@@ -316,7 +351,7 @@ if [[ "$COMMAND" =~ ^(restart|r)$ ]]; then
     else
         DETACHCMD=""
     fi
-    CMD="$SCRIPTNAME -df $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $PROFILES2 $ASKPARAM $PROFILES2 up $SERVICENAME"
+    CMD="$SCRIPTNAME $DFARGS $PROJECTDIR $ENVFILE $DETACHCMD $BUILDCMD $PROJECTNAME $PROFILES2 $ASKPARAM $PROFILES2 up $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "  Running command 2/2 [${CMD}]"
     [ "$VERBOSE" = true ] && echo "---"
 
@@ -361,8 +396,7 @@ elif [ "$COMMAND" == "rm -f " ]; then
         PODNAME=$getComponents_result;
     fi
 
-
-    CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME stop $SERVICENAME"
+    CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD $DOCKERCOMPOSE_FILE_ARGS $PROJECTDIR $ENVFILE $PROJECTNAME stop $SERVICENAME"
     [ "$VERBOSE" = true ] && echo "Running command [$CMD $SERVICEDESC]"
     if [ "$ASK" = true ]; then
         MSG="QUESTION: Do you want to run previous command?"
@@ -383,7 +417,12 @@ elif [ "$COMMAND" == "rm -f " ]; then
     fi
 fi
 
-CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD -f $DOCKERCOMPOSE_FILE $PROJECTDIR $ENVFILE $PROJECTNAME  $COMMAND  $SERVICENAME $EXTRACMDS"
+if [ "$COMMAND" == "build" ]; then
+    COMMAND="";
+    EXTRACMDS="up $BUILDCMD --no-start";
+fi
+
+CMD="$PRECOMMAND $DOCKERCOMPOSE_CMD $DOCKERCOMPOSE_FILE_ARGS $PROJECTDIR $ENVFILE $PROJECTNAME  $COMMAND  $SERVICENAME $EXTRACMDS"
 [ "$VERBOSE" = true ] && echo -e "---\nRunning CMD=$CMD $SERVICEDESC"
 if [ "$ASK" = true ]; then
     MSG="QUESTION: Do you want to run the previous command?"

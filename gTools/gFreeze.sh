@@ -24,18 +24,15 @@ VERBOSE=true
 
 GITROOTFOLDER=$(git rev-parse --show-toplevel)
 # \t-f <fileWithFiles2BFrozen>: def .gitfrozen. File with the files to be frozen    \n
-FILESWITHFILES2BFROZEN=$(git rev-parse --show-toplevel)/.gitfrozen
+FILESWITHFILES2BFROZEN=$GITROOTFOLDER/.gitfrozen
 ACTION=""
 ACTIONS=" freeze f unfreeze u stash unstash info "
 #############################
 ## Functions               ##
 #############################
 function help() {
-    if test "$#" -ge 1; then
-        HELP="${1}\n"     
-    fi
     # \t-f <folder with artifacts>: Folder where the artifact file must be located (def value: ./KArtifacts \n
-    HELP="$HELP\nHELP: USAGE: $SCRIPTNAME [-h] [-f <fileWithFiles2BFrozen>] [<action:$ACTIONS>]                         \n
+    HELP="HELP: USAGE: $SCRIPTNAME [-h] [-f <fileWithFiles2BFrozen>] [<action:$ACTIONS>]                         \n
         \tThis tool freezes or unfreezes a set of git already commited files.                                    \n
         \tThis can be applied to config files or .env files that store private info                              \n
         \tnot intented to be saved.                                                                              \n
@@ -56,6 +53,9 @@ function help() {
         \t      $SCRIPTNAME stash                                                                                \n
         \t      git checkout <newBranch>                                                                         \n
         \t      $SCRIPTNAME unstash"
+    if test "$#" -ge 1; then
+        HELP="$HELP\n${1}"     
+    fi
     echo $HELP
     return $#;
 }
@@ -121,23 +121,32 @@ fi
 
 FILES=""
 NFILES=0
-while IFS= read -r file; do 
-    file="$GITROOTFOLDER/$file"
-    # echo "file=$file"
-    if test -f "$file"; then 
-        FILES="$FILES \"$file\""
-        NFILES=$(($NFILES+1))
-    else
-        echo -e $(help "ERROR: File [$file] does not exist. Please review the file $FILESWITHFILES2BFROZEN. It must contain the names of the files to be [$ACTION]")
-        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
-    fi
-done < <(cat $FILESWITHFILES2BFROZEN; echo)
+
+if ! test -f $FILESWITHFILES2BFROZEN; then 
+    echo -e $(help "ERROR: File $FILESWITHFILES2BFROZEN must exist. It must contain the names of the files to be [$ACTION] (It does not accept patterns, only file names)."); 
+    [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+else
+    while IFS= read -r file; do 
+        file="$GITROOTFOLDER/$file"
+        [ -d "$file" ] && \
+            # echo "$file It's a folder" && \
+            continue;
+        # echo "file=$file"
+        if test -f "$file"; then 
+            FILES="$FILES \"$file\""
+            NFILES=$(($NFILES+1))
+        else
+            echo -e $(help "ERROR: File [$file] does not exist. Please review the file $FILESWITHFILES2BFROZEN. It must contain the names of the files to be [$ACTION]")
+            [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+        fi
+    done < <(cat $FILESWITHFILES2BFROZEN; echo)
+fi
 
 if test "$NFILES" -eq 0; then
      echo -e $(help "No files to be [$ACTION] has been found in file $FILESWITHFILES2BFROZEN")
     [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
 elif [ "$VERBOSE" = true ]; then
-    echo -e "  - FILES2BFROZEN ($NFILES)= [$FILES]\n---"
+    echo -e "  - FILES AT THE $FILESWITHFILES2BFROZEN file ($NFILES)= [$FILES]\n---"
 
 fi
 
