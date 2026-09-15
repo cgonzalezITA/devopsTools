@@ -100,10 +100,9 @@ while true; do
                     CCLUE=$1
                 fi
             elif [[ $1 == --* ]]; then                 
-                COMMAND=${1:2};
                 shift;
                 [[ "$#" -eq 0 ]] && break;
-                COMMAND="$COMMAND $@"
+                COMMAND=$*
                 break;
             fi;
             shift ;;

@@ -7,7 +7,8 @@
   - [Component's definition](#components-definition)
   - [Renew the ingress certificate in minikube ingress](#renew-the-ingress-certificate-in-minikube-ingress)
   - [Log requests made to ingress](#log-requests-made-to-ingress)
-  - [Quick exposure a service outside of the cl](#quick-exposure-a-service-outside-of-the-cl)
+  - [Quick exposure a service outside of the k8s cluster](#quick-exposure-a-service-outside-of-the-k8s-cluster)
+  - [View the endpoints bound to a service](#view-the-endpoints-bound-to-a-service)
 - [Create a Minimum Viable component for quick testing](#create-a-minimum-viable-component-for-quick-testing)
   - [Deploy a web server](#deploy-a-web-server)
   - [Deploy a job](#deploy-a-job)
@@ -47,8 +48,16 @@ $ kubectl get pods -n ingress-nginx
 $ kubectl logs <nginx-controller-pod-name> -n ingress-nginx
 ```
 
-## Quick exposure a service outside of the clu
+## Quick exposure a service outside of the k8s cluster
+To quickly test the deployment of a component before enabling its access via ingress, it can be exposed via command
+```shell
+kubectl port-forward -n <namespace> svc/<serviceName>  <hostPort>:<containerPort> --address 0.0.0.0 
+```
 
+## View the endpoints bound to a service
+```shell
+kubectl get endpoints <service-name> -n <namespace>
+```
 # Create a Minimum Viable component for quick testing
 ## Deploy a web server
 When a recipy is provided to deploy a docker, the equivalent recipy for kubernetes would be something similar to:
@@ -163,8 +172,7 @@ kubectl apply  -f $K8S_COMPONENT_FILENAME
 # If ingress is used and the DNS is global or locally registered at the /etc/hosts file you can try
 curl -k https://$K8S_COMPONENT_DNS/
 
-# Expose the pod to the host just for a quick test (if no ingress has been installed)
-kubectl port-forward  --address 0.0.0.0  -n $K8S_COMPONENT_NAMESPACE svc/${K8S_COMPONENT_NAME}-svc $K8S_COMPONENT_EXTERNALPORT:$K8S_COMPONENT_INNERPORT 
+
 # Test the access to the pod
 curl http://127.0.0.1:${K8S_COMPONENT_EXTERNALPORT}/
 
