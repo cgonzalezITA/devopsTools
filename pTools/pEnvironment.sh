@@ -191,7 +191,7 @@ if [ "$CREATE" = true ]; then
         read -p "$MSG " -n 1 -r
         echo    # (optional) move to a new line
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            rm -rf $ENVROOTFOLDER/$ENVNAME
+            sudo rm -rf $ENVROOTFOLDER/$ENVNAME
         fi
     fi
     if [ ! -d "$ENVROOTFOLDER/$ENVNAME" ]; then
