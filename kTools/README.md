@@ -1,17 +1,22 @@
 # k8s Tools
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
+
+<!-- code_chunk_output -->
 
 - [k8s Tools](#k8s-tools)
   - [Component's definition](#components-definition)
   - [Renew the ingress certificate in minikube ingress](#renew-the-ingress-certificate-in-minikube-ingress)
   - [Log requests made to ingress](#log-requests-made-to-ingress)
+  - [Quick exposure a service outside of the cl](#quick-exposure-a-service-outside-of-the-cl)
 - [Create a Minimum Viable component for quick testing](#create-a-minimum-viable-component-for-quick-testing)
   - [Deploy a web server](#deploy-a-web-server)
   - [Deploy a job](#deploy-a-job)
-- [Issue terminating an artifact (MicroK8s)](#issue-terminating-an-artifact-microk8s)
+  - [Issue terminating an artifact (MicroK8s)](#issue-terminating-an-artifact-microk8s)
+
+<!-- /code_chunk_output -->
 
 This folder contains scripts to ease certain operations on the kubernetes cluster.
 These commands rely on the kubectl program to perform its functionality and has been tested in a Ubuntu 20.04.6 LTS.    
-
 ## Component's definition
 This folder contains yaml files with the definition of components that could be used as tools once deployed in a namespace:  
 - **k8s_components-utils.yaml**: Contains some utilities:
@@ -41,6 +46,8 @@ $ kubectl get pods -n ingress-nginx
 # Identify the name of your controller pod
 $ kubectl logs <nginx-controller-pod-name> -n ingress-nginx
 ```
+
+## Quick exposure a service outside of the clu
 
 # Create a Minimum Viable component for quick testing
 ## Deploy a web server
