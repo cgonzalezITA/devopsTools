@@ -17,7 +17,7 @@ BASEDIR=$(dirname "$SCRIPTNAME")
 FOLDER_VALUES=./HValues
 VERBOSE=true
 SUBMODULE=""
-PWD1=$(pwd)
+PWD1=$(pwd) 
 C1=""
 C2=""
 # \t[-y|--yes]: No confirmation questions are asked \n
@@ -85,7 +85,8 @@ while true; do
                 if [[ "$1" == *$'\n'* ]]; then
                     C1="\$(cat << 'EOF' 
 $1
-EOF)"
+EOF
+)"
                 else
                     C1="$1"
                 fi
@@ -94,7 +95,8 @@ EOF)"
                 if [[ "$1" == *$'\n'* ]]; then
                     C2="\$(cat << 'EOF' 
 $1
-EOF)"
+EOF
+)"
                 else
                     C2="$1"
                 fi
@@ -123,13 +125,14 @@ fi
 COMMIT_ARGS=("-m" "$C1")
 test "${#C2}" -gt 0 && COMMIT_ARGS+=("-m" "$C2")
 CMD="git commit -m \"$C1\""
+CMDALL=$CMD
 test "${#C2}" -gt 0 && CMD="$CMD -m \"$C2\""
 if test "${#TAG}" -gt 0; then
-    CMD="$CMD; git tag $TAG -m \"$TAGC\""
+    CMDALL="$CMDALL; git tag $TAG -m \"$TAGC\""
 fi
 if [ "$VERBOSE" = true ]; then
     echo "---"
-    echo "  >Running command [$CMD]"
+    echo "  >Running command [$CMDALL]"
 fi
 if [ "$ASK" = true ]; then
     MSG=$(echo "QUESTION: Are you sure to run the previous command to commit the git changes [Y/n]?" \
@@ -145,7 +148,7 @@ then
         cd $SUBMODULE;
     fi
     echo ---
-    git commit "${COMMIT_ARGS[@]}"
+    eval "$CMD"
     if test "${#TAG}" -gt 0; then
         eval "git tag $TAG -m \"$TAGC\""
     fi
