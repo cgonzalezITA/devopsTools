@@ -67,6 +67,7 @@ COMMANDNAMES=" $COMMANDSINSTALL $COMMANDSDELETE $COMMANDSRESTART $COMMANDSUPGRAD
 COMMANDINSTALLUPGRADE=" $COMMANDSINSTALL $COMMANDSUPGRADE "
 # \t-hf <folder with helm config>: Folder where the config file must be located (def value: ./HValues    \n
 FOLDER_HELMBASE=./Helms
+HELMS_FALLBACK=false
 # \t-fv: Force secretname match the given clue (using this, the clue is not a clue, but the name)       \n
 USECCLUE=true
 CCLUE=""
@@ -186,23 +187,33 @@ while true; do
     esac
 done
 
+if ! test -d $FOLDER_HELMBASE;then
+    echo -e "# INFO: Folder [$FOLDER_HELMBASE] not found. Falling back to [./]";
+    FOLDER_HELMBASE="./"
+    HELMS_FALLBACK=true
+fi
+
 if test "${#CCLUE}" -eq 0; then
-    echo -e $(help "# ERROR: <component clue> is mandatory");
-    [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
+    if [ "$HELMS_FALLBACK" = false ]; then
+        echo -e $(help "# ERROR: <component clue> is mandatory");
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    fi
+    if test "${#COMMAND}" -eq 0; then
+        COMMAND="install"
+    fi
 elif test "${#COMMAND}" -eq 0; then
-    COMMAND="install"
+    if [ "$HELMS_FALLBACK" = true ] && [[ ${COMMANDNAMES[@]} =~ " $CCLUE " ]]; then
+        COMMAND=$CCLUE
+        CCLUE=""
+        CCLUEORIG=""
+    else
+        COMMAND="install"
+    fi
 elif [[ ${COMMANDNAMES[@]} =~ " $CCLUE " ]] && ! [[ ${COMMANDNAMES[@]} =~ " $COMMAND " ]];  then
     TMP=$CCLUE
     CCLUE=$COMMAND
     CCLUEORIG=$COMMAND
     COMMAND=$TMP
-fi
-
-
-
-if ! test -d $FOLDER_HELMBASE;then 
-    echo -e $(help "ERROR: Folder [$FOLDER_HELMBASE] must exist. Use -hf option to use an alternate folder");
-    [ "$CALLMODE" == "executed" ] && exit -1 || return -1; 
 fi
 
 if test "${#NSCLUE}" -gt 0; then
@@ -225,7 +236,19 @@ if test "${#NSCLUE}" -gt 0; then
 fi
 
 
-if [[ "$CCLUE" =~ ^(all)$ ]]; then
+if [ "$HELMS_FALLBACK" = true ] && test "${#CCLUE}" -eq 0; then
+    NLINES=$(find "$FOLDER_HELMBASE" -maxdepth 1 -name "$CONFIGNAME_PATTERN" | wc -l)
+    if test "$NLINES" -eq 0; then
+        echo -e $(help "ERROR: No config file matching [$CONFIGNAME_PATTERN] found in [$FOLDER_HELMBASE]");
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    elif test "$NLINES" -gt 1; then
+        MATCHES=$(find "$FOLDER_HELMBASE" -maxdepth 1 -name "$CONFIGNAME_PATTERN")
+        echo -e $(help "ERROR: Multiple config files found in [$FOLDER_HELMBASE]. Specify a <component clue> to select one:\n$MATCHES");
+        [ "$CALLMODE" == "executed" ] && exit -1 || return -1;
+    fi
+    FCONFIG=$(find "$FOLDER_HELMBASE" -maxdepth 1 -name "$CONFIGNAME_PATTERN")
+    USECCLUE=false
+elif [[ "$CCLUE" =~ ^(all)$ ]]; then
     # echo "CCLUE=* deploys all the files in the specified folder, so the -hf <folder> has to be used"
     USECCLUE=false
     FCONFIG=$CCLUE
@@ -248,7 +271,9 @@ if [ "$USECCLUE" = true ]; then
         # echo "FCONFIG=[$FCONFIG]" > /dev/tty;
     fi
 else
-    FCONFIG=$CCLUE
+    if test "${#CCLUE}" -gt 0; then
+        FCONFIG=$CCLUE
+    fi
 fi
 FCONFIGFOLDER="$(dirname "${FCONFIG}")"
 # echo "FCONFIGFOLDER=$FCONFIGFOLDER" > /dev/tty;
